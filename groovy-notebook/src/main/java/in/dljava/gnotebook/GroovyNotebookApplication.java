@@ -1,11 +1,11 @@
 package in.dljava.gnotebook;
 
-import in.dljava.gnotebook.book.Book;
+import in.dljava.gnotebook.book.BookView;
 
 public class GroovyNotebookApplication {
 
 	public static void main(String... args) {
 
-		Book.startBook(args);
+		BookView.startBook(args);
 	}
 }

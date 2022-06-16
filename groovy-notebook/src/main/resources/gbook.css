@@ -1,0 +1,39 @@
+* {
+	-fx-font-family: 'monospaced';
+}
+
+#statusBar {
+	-fx-padding: 2 2 2 10;
+	-fx-font-weight: bold;
+}
+
+#pages {
+	
+}
+
+.addBar {
+	-fx-alignment: center;
+}
+
+.addBarButton {
+	-fx-background-color: #0094C2;
+	-fx-text-fill: #FFFFFF;
+	-fx-cursor: hand;
+	-fx-padding: 1 7 1 7;
+	-fx-focus-color: transparent;
+	-fx-faint-focus-color: transparent;
+}
+
+
+.addBarText {
+	-fx-text-fill: #0094C2;
+	-fx-padding: 5;
+}
+
+.pagesContainer {
+	
+}
+
+.pages {
+	
+}
