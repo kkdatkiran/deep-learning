@@ -37,3 +37,9 @@
 .pages {
 	
 }
+
+.page {
+	-fx-border-style: solid;
+	-fx-border-width: 0 0 1px 0;
+	-fx-border-color: transparent transparent #dddddd transparent;
+}

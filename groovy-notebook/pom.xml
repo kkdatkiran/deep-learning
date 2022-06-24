@@ -12,6 +12,7 @@
 		<javafx.version>17.0.1</javafx.version>
 		<javafx.maven.plugin.version>0.0.6</javafx.maven.plugin.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<groovy.version>4.0.3</groovy.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -23,6 +24,12 @@
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-fxml</artifactId>
 			<version>${javafx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.groovy</groupId>
+			<artifactId>groovy-all</artifactId>
+			<version>${groovy.version}</version>
+			<type>pom</type>
 		</dependency>
 	</dependencies>
 

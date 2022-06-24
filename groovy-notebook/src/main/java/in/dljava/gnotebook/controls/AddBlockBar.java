@@ -11,7 +11,7 @@ public class AddBlockBar extends HBox { // NOSONAR - this class needs the inheri
 
 	private final SimpleBooleanProperty visibility = new SimpleBooleanProperty(false);
 
-	public AddBlockBar(BookManager bookManager, int index) {
+	public AddBlockBar(BookManager bookManager, String id) {
 
 		Button addCode = new Button("+ Code");
 		Button addMKD = new Button("+ Markdown");
@@ -23,8 +23,8 @@ public class AddBlockBar extends HBox { // NOSONAR - this class needs the inheri
 		addCode.visibleProperty().bind(visibility);
 		addMKD.visibleProperty().bind(visibility);
 
-		addCode.setOnAction(e -> bookManager.addBookPage(BookPageType.CODE, index));
-		addMKD.setOnAction(e -> bookManager.addBookPage(BookPageType.MARKDOWN, index));
+		addCode.setOnAction(e -> bookManager.addBookPage(BookPageType.CODE, id));
+		addMKD.setOnAction(e -> bookManager.addBookPage(BookPageType.MARKDOWN, id));
 
 		this.setOnMouseEntered(e -> visibility.setValue(true));
 		this.setOnMouseExited(e -> visibility.setValue(false));
@@ -34,5 +34,9 @@ public class AddBlockBar extends HBox { // NOSONAR - this class needs the inheri
 		t.getStyleClass().add("addBarText");
 
 		this.getChildren().addAll(addCode, t, addMKD);
+	}
+
+	public SimpleBooleanProperty getVisibilityProperty() {
+		return this.visibility;
 	}
 }
