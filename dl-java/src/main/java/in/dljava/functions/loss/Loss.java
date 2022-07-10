@@ -1,8 +1,8 @@
-package in.dljava.functions.metrics;
+package in.dljava.functions.loss;
 
 import in.dljava.data.DoubleData;
 
-public interface MetricsFunction {
+public interface Loss {
 
 	double compute(DoubleData output, DoubleData expected);
 }

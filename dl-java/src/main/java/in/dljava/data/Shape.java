@@ -2,14 +2,30 @@ package in.dljava.data;
 
 import java.util.Arrays;
 
-public record Shape(int[] dimensions) {
+public class Shape {
 
-	public Shape(int... dimensions) { // NOSONAR - this is not the same as the default one apparently.
+	private final int[] dimensions;
+	private int totalBackup = -1;
+
+	public Shape(int... dimensions) {
 
 		if (dimensions == null || dimensions.length == 0)
 			throw new DataException("Data shape cannot be of no dimension");
 
 		this.dimensions = dimensions;
+		for (int each : this.dimensions)
+			if (each < 0)
+				throw new DataException("Negative dimensions are not allowed");
+	}
+
+	public Shape oneOfHigherDimension() {
+
+		int[] subDimension = new int[dimensions.length];
+
+		System.arraycopy(dimensions, 0, subDimension, 0, dimensions.length);
+		subDimension[0] = 1;
+
+		return new Shape(subDimension);
 	}
 
 	public int[] dimensions() {
@@ -22,10 +38,15 @@ public record Shape(int[] dimensions) {
 
 	public int total() {
 
+		if (totalBackup > 0)
+			return this.totalBackup;
+
 		int total = 1;
 
 		for (int e : this.dimensions)
 			total *= e;
+
+		this.totalBackup = total;
 
 		return total;
 	}

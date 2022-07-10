@@ -3,6 +3,10 @@ package in.dljava.data;
 public interface Data {
 
 	public abstract Shape getShape();
+	
+	public abstract Data subData(Shape shape, int from, int to);
+	
+	public void print();
 
 	public static Data of(Shape s, double[] data) {
 		return new DoubleData(s, data);
@@ -33,4 +37,5 @@ public interface Data {
 
 		return new DoubleData(new Shape(data.length, data[0].length), dataReshaped);
 	}
+
 }

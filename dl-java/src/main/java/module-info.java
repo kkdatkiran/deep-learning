@@ -1,4 +1,4 @@
-module dl {
+module in.dljava {
 	exports in.dljava;
 
 	requires jdk.incubator.vector;

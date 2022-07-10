@@ -9,8 +9,9 @@ class InitializerFunctionTest {
 
 	@Test
 	void test() {
-		
-		Data d = InitializerFunction.GLOROT_UNIFORM.initalize(Double.class, new Shape(100), new InitializerParameters());
+
+		Data d = InitializerFunction.GLOROT_UNIFORM.make(Double.class, new InitializerParameters())
+				.initalize(new Shape(1000));
 		System.out.println(d);
 	}
 
