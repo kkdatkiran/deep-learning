@@ -29,8 +29,8 @@ public class Dense implements Layer {
 	private DoubleData b;
 	private DoubleData o;
 	private DoubleData z;
-	private DoubleData oBatch;
-	private DoubleData zBatch;
+	private DoubleData bDelta;
+	private DoubleData wDelta;
 	private int prevLayerUnits;
 	private String name;
 
@@ -53,10 +53,11 @@ public class Dense implements Layer {
 		this.name = name;
 
 		b = (DoubleData) biasInitializer.initalize(new Shape(1, this.units));
+		bDelta = new DoubleData(b.getShape(), new double[b.getShape().total()]);
 
 		this.prevLayerUnits = previous.getUnits();
 		w = (DoubleData) kernelInitializer.initalize(new Shape(this.prevLayerUnits, this.units));
-
+		wDelta = new DoubleData(w.getShape(), new double[w.getShape().total()]);
 	}
 
 	@Override
@@ -75,19 +76,14 @@ public class Dense implements Layer {
 	public DoubleData feedForward(DoubleData prevLayerData) {
 		this.z = prevLayerData.matrixMultiply(w).add(b);
 		this.o = this.z.clone();
-		this.activation.apply(this.o.getData());
-		
-		if (this.zBatch == null)
-			this.zBatch = this.z;
-		else
-			this.zBatch = this.zBatch.add(this.z);
-		
-		if (this.oBatch == null)
-			this.oBatch = this.o;
-		else
-			this.oBatch = this.oBatch.add(this.z);
-		
+		this.activation.apply(this.o.getData());		
 		return this.o;
+	}
+	
+	@Override
+	public void backwardPropagation(DoubleData exp) {
+		
+		DoubleData error = exp.subtract(this.o);
 	}
 
 	@Override
@@ -112,14 +108,7 @@ public class Dense implements Layer {
 	@Override
 	public void updateWeights(DoubleData doubleData, OptimizerFunction optimizer) {
 		
-		this.zBatch = this.zBatch.divide(this.units);
-		this.oBatch = this.oBatch.divide(this.units);
 		
-		
-		
-		
-		this.zBatch = null;
-		this.oBatch = null;
 	}
 
 	@Override

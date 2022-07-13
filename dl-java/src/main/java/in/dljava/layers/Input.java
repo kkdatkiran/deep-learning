@@ -54,6 +54,11 @@ public class Input implements Layer {
 		this.output = prevLayerData;
 		return this.output;
 	}
+	
+	@Override
+	public void backwardPropagation(DoubleData exp) {
+		
+	}
 
 	@Override
 	public DoubleData getOutput() {

@@ -131,9 +131,15 @@ public class Sequential {
 					int toSubData = fromSubData + eachOutputShape.total();
 					DoubleData out = this.layers.get(this.layers.size() - 1).getOutput();
 					DoubleData exp = (DoubleData) ((DoubleData) y).subData(eachOutputShape, fromSubData, toSubData);
+					
 					batchLoss = batchLoss.add(loss.compute(out, exp));
 					for (int i = 0; i < metricsCount.length; i++) {
 						metricsCount[i] += this.metrics.get(i).compute(out, exp);
+					}
+					
+					this.layers.peekLast().backwardPropagation(exp);
+					for (int i = this.layers.size() - 2;i>0;i--) {
+						this.layers.get(i).backwardPropagation(exp);
 					}
 				}
 

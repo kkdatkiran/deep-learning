@@ -23,4 +23,6 @@ public interface Layer {
 	public void updateWeights(DoubleData doubleData, OptimizerFunction optimizer);
 
 	public DoubleData getErrors();
+
+	public void backwardPropagation(DoubleData exp);
 }

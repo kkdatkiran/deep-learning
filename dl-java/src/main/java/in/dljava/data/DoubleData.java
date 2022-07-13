@@ -206,4 +206,26 @@ public class DoubleData implements Data, Cloneable {
 
 		return new DoubleData(this.shape, result);
 	}
+
+	public DoubleData subtract(DoubleData d) {
+		
+		if (!this.shape.equals(d.getShape()))
+			throw new DataException("Cannot add data of shape " + this.shape + " to " + d.shape);
+
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+		double[] result = new double[this.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).sub(DoubleVector.fromArray(SPECIES, d.data, i))
+					.intoArray(result, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = this.data[i] - d.data[i];
+		}
+
+		return new DoubleData(this.shape, result);
+	}
 }
