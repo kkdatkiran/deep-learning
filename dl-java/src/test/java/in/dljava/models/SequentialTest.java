@@ -8,7 +8,7 @@ import in.dljava.data.Data;
 import in.dljava.data.Shape;
 import in.dljava.functions.loss.BinaryCrossEntropy;
 import in.dljava.functions.metrics.Accuracy;
-import in.dljava.functions.optimizer.AdamOptimizer;
+import in.dljava.functions.optimizer.MomentumOptimizer;
 import in.dljava.funtions.activation.ActivationFunction;
 import in.dljava.layers.Dense;
 import in.dljava.layers.Input;
@@ -21,7 +21,7 @@ class SequentialTest {
 		model.addLayer(new Input(new Shape(2)));
 		model.addLayer(new Dense(2).setActivation(ActivationFunction.RELU.make()));
 		model.addLayer(new Dense(1).setActivation(ActivationFunction.SIGMOID.make()));
-		model.compile(new AdamOptimizer(), new BinaryCrossEntropy(), List.of(new Accuracy()));
+		model.compile(new MomentumOptimizer(0.001), new BinaryCrossEntropy(), List.of(new Accuracy()));
 		
 		System.out.println(model.summary());
 		
@@ -39,7 +39,7 @@ class SequentialTest {
 			new double[] {0d},
 		});
 		
-		model.fit(x, y, 2, 10, true);
+		model.fit(x, y, 4, 10, true);
 		
 		System.out.println(model.predict(x));
 		

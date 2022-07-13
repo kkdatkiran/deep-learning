@@ -2,6 +2,7 @@ package in.dljava.layers;
 
 import in.dljava.data.DoubleData;
 import in.dljava.data.Shape;
+import in.dljava.functions.optimizer.OptimizerFunction;
 import in.dljava.util.StringUtil;
 import in.dljava.util.Tuple2;
 import in.dljava.util.Tuples;
@@ -63,5 +64,15 @@ public class Input implements Layer {
 	@Override
 	public void print() {
 		System.out.println("Input (" + this.name + ") - no paramters to train");
+	}
+
+	@Override
+	public void updateWeights(DoubleData doubleData, OptimizerFunction optimizer) {
+
+	}
+
+	@Override
+	public DoubleData getErrors() {
+		return null;
 	}
 }

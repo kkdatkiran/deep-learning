@@ -1,6 +1,7 @@
 package in.dljava.layers;
 
 import in.dljava.data.DoubleData;
+import in.dljava.functions.optimizer.OptimizerFunction;
 import in.dljava.util.Tuple2;
 
 public interface Layer {
@@ -18,4 +19,8 @@ public interface Layer {
 	public DoubleData getOutput();
 	
 	public void print();
+
+	public void updateWeights(DoubleData doubleData, OptimizerFunction optimizer);
+
+	public DoubleData getErrors();
 }

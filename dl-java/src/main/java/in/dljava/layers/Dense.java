@@ -4,6 +4,7 @@ import in.dljava.data.DoubleData;
 import in.dljava.data.Shape;
 import in.dljava.functions.initializers.Initializer;
 import in.dljava.functions.initializers.InitializerFunction;
+import in.dljava.functions.optimizer.OptimizerFunction;
 import in.dljava.funtions.activation.Activation;
 import in.dljava.funtions.activation.ActivationFunction;
 import in.dljava.util.StringUtil;
@@ -27,6 +28,9 @@ public class Dense implements Layer {
 	private DoubleData w;
 	private DoubleData b;
 	private DoubleData o;
+	private DoubleData z;
+	private DoubleData oBatch;
+	private DoubleData zBatch;
 	private int prevLayerUnits;
 	private String name;
 
@@ -69,8 +73,20 @@ public class Dense implements Layer {
 
 	@Override
 	public DoubleData feedForward(DoubleData prevLayerData) {
-		this.o = prevLayerData.matrixMultiply(w).add(b);
+		this.z = prevLayerData.matrixMultiply(w).add(b);
+		this.o = this.z.clone();
 		this.activation.apply(this.o.getData());
+		
+		if (this.zBatch == null)
+			this.zBatch = this.z;
+		else
+			this.zBatch = this.zBatch.add(this.z);
+		
+		if (this.oBatch == null)
+			this.oBatch = this.o;
+		else
+			this.oBatch = this.oBatch.add(this.z);
+		
 		return this.o;
 	}
 
@@ -91,5 +107,24 @@ public class Dense implements Layer {
 
 		System.out.println("Bias : ");
 		this.b.print();
+	}
+
+	@Override
+	public void updateWeights(DoubleData doubleData, OptimizerFunction optimizer) {
+		
+		this.zBatch = this.zBatch.divide(this.units);
+		this.oBatch = this.oBatch.divide(this.units);
+		
+		
+		
+		
+		this.zBatch = null;
+		this.oBatch = null;
+	}
+
+	@Override
+	public DoubleData getErrors() {
+
+		return new DoubleData(new Shape(1), new double[] { 1d });
 	}
 }

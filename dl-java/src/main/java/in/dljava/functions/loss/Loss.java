@@ -4,5 +4,5 @@ import in.dljava.data.DoubleData;
 
 public interface Loss {
 
-	double compute(DoubleData output, DoubleData expected);
+	DoubleData compute(DoubleData output, DoubleData expected);
 }

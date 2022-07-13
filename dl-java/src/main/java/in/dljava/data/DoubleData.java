@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 import jdk.incubator.vector.DoubleVector;
 import jdk.incubator.vector.VectorSpecies;
 
-public class DoubleData implements Data {
+public class DoubleData implements Data, Cloneable {
 
 	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
 
@@ -177,5 +177,33 @@ public class DoubleData implements Data {
 			}
 		}
 
+	}
+
+	@Override
+	public DoubleData clone() {
+
+		double[] cloned = new double[this.data.length];
+
+		System.arraycopy(this.data, 0, cloned, 0, this.data.length);
+
+		return new DoubleData(shape, cloned);
+	}
+
+	public DoubleData divide(int batchSize) {
+
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+		double[] result = new double[this.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).div(batchSize).intoArray(result, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = this.data[i] / batchSize;
+		}
+
+		return new DoubleData(this.shape, result);
 	}
 }

@@ -2,6 +2,7 @@ package in.dljava.models;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,7 +21,7 @@ import in.dljava.util.Tuples;
 
 public class Sequential {
 
-	private List<Layer> layers = new ArrayList<>();
+	private LinkedList<Layer> layers = new LinkedList<>();
 
 	private OptimizerFunction optimizer;
 	private Loss loss;
@@ -73,7 +74,7 @@ public class Sequential {
 
 	public void fit(Data x, Data y) {
 
-		this.fit(x, y, -1, 1, true);
+		this.fit(x, y, 0, 1, true);
 	}
 
 	public void fit(Data x, Data y, int batchSize, int epochs, boolean verbose) {
@@ -114,7 +115,8 @@ public class Sequential {
 
 			for (int di = 0; di < x.getShape().dimensions()[0]; di += batchSize) {
 
-				double batchLoss = 0d;
+				DoubleData batchLoss = new DoubleData(new Shape(this.layers.getLast().getUnits()),
+						new double[this.layers.getLast().getUnits()]);
 				Arrays.fill(metricsCount, 0d);
 				for (int b = di; b < di + batchSize; b++) {
 
@@ -129,13 +131,13 @@ public class Sequential {
 					int toSubData = fromSubData + eachOutputShape.total();
 					DoubleData out = this.layers.get(this.layers.size() - 1).getOutput();
 					DoubleData exp = (DoubleData) ((DoubleData) y).subData(eachOutputShape, fromSubData, toSubData);
-					batchLoss += loss.compute(out, exp);
+					batchLoss = batchLoss.add(loss.compute(out, exp));
 					for (int i = 0; i < metricsCount.length; i++) {
 						metricsCount[i] += this.metrics.get(i).compute(out, exp);
 					}
 				}
 
-				batchLoss /= batchSize;
+				batchLoss = batchLoss.divide(batchSize);
 				for (int i = 0; i < metricsCount.length; i++) {
 					metricsCount[i] /= batchSize;
 				}
@@ -144,8 +146,14 @@ public class Sequential {
 					System.out.println("Batch : " + (di / batchSize) + " - Loss : " + batchLoss + ", Metrics : "
 							+ Arrays.toString(ArrayUtil.zipToString(metricsNames, metricsCount)));
 				}
+
+				this.layers.get(this.layers.size() - 1).updateWeights(batchLoss, optimizer);
+
+				for (int i = this.layers.size() - 2; i > 0; i--) {
+					this.layers.get(i).updateWeights(this.layers.get(i + 1).getErrors(), optimizer);
+				}
 			}
-			
+
 			if (verbose)
 				System.out.println();
 		}
