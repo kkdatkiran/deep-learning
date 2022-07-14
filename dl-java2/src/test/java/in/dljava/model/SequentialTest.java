@@ -1,40 +1,37 @@
 package in.dljava.model;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
-import in.dljava.activation.Relu;
-import in.dljava.activation.Sigmoid;
+import in.dljava.data.DoubleData;
+import in.dljava.data.Shape;
 import in.dljava.layer.DenseLayer;
-import in.dljava.layer.InputLayer;
+import in.dljava.loss.MeanSquaredError;
+import in.dljava.optimizer.SGDOptimizer;
+import in.dljava.trainer.Trainer;
 
 class SequentialTest {
 
 	@Test
 	void test() {
-		Sequential model = new Sequential();
-		model.addLayer(new InputLayer(2));
-		model.addLayer(new DenseLayer(2).setActivation(new Relu()));
-		model.addLayer(new DenseLayer(1).setActivation(new Sigmoid()));
+		var optim = new SGDOptimizer(0.0001);
+
+		Sequential model = new Sequential(List.of(new DenseLayer(6, new in.dljava.operations.Relu()),
+				new DenseLayer(1, new in.dljava.operations.Sigmoid())), new MeanSquaredError(), 0);
+
+		optim.setModel(model);
+
+		double[] x = new double[] { 0, 0, 0, 1, 1, 0, 1, 1 };
+
+		double[] y = new double[] { 0, 1, 1, 0 };
+
+		Trainer trainer = new Trainer(model, optim);
+		DoubleData xData = new DoubleData(new Shape(4, 2), x);
+		DoubleData yData = new DoubleData(new Shape(4, 1), y);
+		trainer.fit(xData, yData, xData, yData, 100, 10, 1, true);
 		
-		double[][] x = new double[][] {
-			new double[] {0d, 0d},
-			new double[] {0d, 1d},
-			new double[] {1d, 0d},
-			new double[] {1d, 1d},
-		};
-		
-		double[][] y = new double[][] {
-			new double[] {0d},
-			new double[] {1d},
-			new double[] {1d},
-			new double[] {0d},
-		};
-		
-//		model.fit(x, y, 4, 10, true);
-//		
-//		System.out.println(model.predict(x));
-//		
-//		model.print();
+		System.out.println(model.forward(new DoubleData(new Shape(1,2), new double[] {1,0})));
 	}
 
 }
