@@ -30,6 +30,7 @@ public class DenseLayer extends Layer {
 		// Weights
 		this.params.add((DoubleData) initializer.initalize(new Shape(input.getShape().dimensions()[1], this.neurons)));
 
+		initializer = InitializerFunction.ZEROS.make(Double.class);
 		// Bias
 		this.params.add((DoubleData) initializer.initalize(new Shape(1, this.neurons)));
 

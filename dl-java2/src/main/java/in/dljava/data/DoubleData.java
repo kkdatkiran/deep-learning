@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import jdk.incubator.vector.DoubleVector;
+import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 
 public class DoubleData implements Data, Cloneable {
@@ -131,12 +132,12 @@ public class DoubleData implements Data, Cloneable {
 		System.arraycopy(this.data, from, sub, 0, to - from);
 		return new DoubleData(shape, sub);
 	}
-	
+
 	public DoubleData subDataNth(int n) {
-		
+
 		Shape newShape = this.shape.oneOf();
 		int size = newShape.total();
-		
+
 		double[] sub = new double[size];
 		System.arraycopy(this.data, n * size, sub, 0, size);
 		return new DoubleData(newShape, sub);
@@ -316,7 +317,7 @@ public class DoubleData implements Data, Cloneable {
 	}
 
 	public DoubleData inplaceSubtract(DoubleData d) {
-		
+
 		if (!this.shape.equals(d.getShape()))
 			throw new DataException("Cannot subtract data of shape " + this.shape + " to " + d.shape);
 
@@ -330,14 +331,14 @@ public class DoubleData implements Data, Cloneable {
 		}
 
 		for (; i < this.data.length; i++) {
-			this.data[i] -=  d.data[i];
+			this.data[i] -= d.data[i];
 		}
 
 		return this;
 	}
 
 	public DoubleData multiply(DoubleData d) {
-		
+
 		if (!this.shape.equals(d.getShape()))
 			throw new DataException("Cannot add data of shape " + this.shape + " to " + d.shape);
 
@@ -356,5 +357,32 @@ public class DoubleData implements Data, Cloneable {
 		}
 
 		return new DoubleData(this.shape, result);
+	}
+
+	public DoubleData exp() {
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+		double[] result = new double[this.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).lanewise(VectorOperators.EXP).intoArray(result, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = Math.exp(this.data[i]);
+		}
+
+		return new DoubleData(this.shape, result);
+	}
+
+	public double total() {
+
+		double total = 0;
+		for (int i = 0; i < this.data.length; i++) {
+			total += this.data[i];
+		}
+
+		return total;
 	}
 }
