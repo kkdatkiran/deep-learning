@@ -25,27 +25,30 @@ class MNISTTest {
 
 		var optim = new SGDOptimizer(0.0001);
 
-		Sequential model = new Sequential(List.of(
-				new DenseLayer(32, new in.dljava.operations.Sigmoid()),
+		Sequential model = new Sequential(List.of(new DenseLayer(32, new in.dljava.operations.Sigmoid()),
 				new DenseLayer(64, new in.dljava.operations.Sigmoid()),
 				new DenseLayer(32, new in.dljava.operations.Sigmoid()),
 				new DenseLayer(10, new in.dljava.operations.Softmax())), new MeanSquaredError(), 0);
 
 		optim.setModel(model);
 
+		System.out.println("");
 		Trainer trainer = new Trainer(model, optim);
+		long start = System.currentTimeMillis();
 		trainer.fit(xTrain, yTrain, xTest, yTest, 100, 10, 32, true);
+		System.out.println("\n" + ((System.currentTimeMillis() - start) / (60d * 1000)) + " minutes");
+		System.out.println("");
 
 		for (int i = 0; i < 10; i++) {
-			
+
 			int r = new Random().nextInt(0, 5000);
-			
+
 			System.out.println("Number : ");
 			yTest.subDataNth(r).print();
 			System.out.println("Output : ");
 			model.forward(xTest.subDataNth(r)).print();
 			System.out.println("------");
-			
+
 		}
 	}
 }
