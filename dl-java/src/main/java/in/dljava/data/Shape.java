@@ -98,4 +98,14 @@ public class Shape {
 
 		return total;
 	}
+
+	public Shape oneOf() {
+
+		int[] dims = new int[this.dimensions.length];
+
+		System.arraycopy(this.dimensions, 0, dims, 0, dims.length);
+		dims[0] = 1;
+
+		return new Shape(dims);
+	}
 }

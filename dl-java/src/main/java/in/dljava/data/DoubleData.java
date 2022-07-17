@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import jdk.incubator.vector.DoubleVector;
+import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 
 public class DoubleData implements Data, Cloneable {
@@ -132,6 +133,16 @@ public class DoubleData implements Data, Cloneable {
 		return new DoubleData(shape, sub);
 	}
 
+	public DoubleData subDataNth(int n) {
+
+		Shape newShape = this.shape.oneOf();
+		int size = newShape.total();
+
+		double[] sub = new double[size];
+		System.arraycopy(this.data, n * size, sub, 0, size);
+		return new DoubleData(newShape, sub);
+	}
+
 	@Override
 	public void print() {
 
@@ -163,7 +174,7 @@ public class DoubleData implements Data, Cloneable {
 		} else {
 
 			int matrixSize = dimensions[0];
-			int dim[] = new int[dimensions.length - 1];
+			int[] dim = new int[dimensions.length - 1];
 			dim[0] = dimensions[0];
 
 			for (int i = 1; i < dimensions.length - 1; i++) {
@@ -179,8 +190,7 @@ public class DoubleData implements Data, Cloneable {
 
 	}
 
-	@Override
-	public DoubleData clone() {
+	public DoubleData deepCopy() {
 
 		double[] cloned = new double[this.data.length];
 
@@ -189,7 +199,7 @@ public class DoubleData implements Data, Cloneable {
 		return new DoubleData(shape, cloned);
 	}
 
-	public DoubleData divide(int batchSize) {
+	public DoubleData divide(double batchSize) {
 
 		int upperBound = SPECIES.loopBound(this.data.length);
 
@@ -208,9 +218,9 @@ public class DoubleData implements Data, Cloneable {
 	}
 
 	public DoubleData subtract(DoubleData d) {
-		
+
 		if (!this.shape.equals(d.getShape()))
-			throw new DataException("Cannot add data of shape " + this.shape + " to " + d.shape);
+			throw new DataException("Cannot subtract data of shape " + this.shape + " to " + d.shape);
 
 		int upperBound = SPECIES.loopBound(this.data.length);
 
@@ -227,5 +237,196 @@ public class DoubleData implements Data, Cloneable {
 		}
 
 		return new DoubleData(this.shape, result);
+	}
+
+	public DoubleData transpose() {
+
+		if (this.shape.dimensions().length != 2)
+			throw new DataException("Cannot tranpose if it is not a matrix data : " + this.shape);
+
+		var dim = this.shape.dimensions();
+
+		var ndata = new double[this.data.length];
+		var nShape = new Shape(dim[1], dim[0]);
+
+		if (dim[0] == 1 || dim[1] == 1) {
+			System.arraycopy(this.data, 0, ndata, 0, this.data.length);
+
+		} else {
+
+			for (int i = 0; i < dim[0]; i++) {
+				for (int j = 0; j < dim[1]; j++) {
+					ndata[i + (j * dim[0])] = data[j + (i * dim[1])];
+				}
+			}
+		}
+
+		return new DoubleData(nShape, ndata);
+	}
+
+	public DoubleData onesLike() {
+		var ndata = new double[this.data.length];
+
+		Arrays.fill(ndata, 1d);
+
+		return new DoubleData(this.shape, ndata);
+	}
+
+	public DoubleData power(int num) {
+
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+		double[] result = new double[this.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).pow(num).intoArray(result, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = Math.pow(this.data[i], num);
+		}
+
+		return new DoubleData(this.shape, result);
+	}
+
+	public double average() {
+		double total = 0;
+		for (int i = 0; i < this.data.length; i++) {
+			total += this.data[i];
+		}
+
+		return total / this.shape.total();
+	}
+
+	public DoubleData multiply(double d) {
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+		double[] result = new double[this.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).mul(d).intoArray(result, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = this.data[i] * d;
+		}
+
+		return new DoubleData(this.shape, result);
+	}
+
+	public DoubleData inplaceSubtract(DoubleData d) {
+
+		if (!this.shape.equals(d.getShape()))
+			throw new DataException("Cannot subtract data of shape " + this.shape + " to " + d.shape);
+
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).sub(DoubleVector.fromArray(SPECIES, d.data, i))
+					.intoArray(this.data, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			this.data[i] -= d.data[i];
+		}
+
+		return this;
+	}
+
+	public DoubleData multiply(DoubleData d) {
+
+		if (!this.shape.equals(d.getShape()))
+			throw new DataException("Cannot add data of shape " + this.shape + " to " + d.shape);
+
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+		double[] result = new double[this.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).mul(DoubleVector.fromArray(SPECIES, d.data, i))
+					.intoArray(result, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = this.data[i] * d.data[i];
+		}
+
+		return new DoubleData(this.shape, result);
+	}
+
+	public DoubleData exp() {
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+		double[] result = new double[this.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).lanewise(VectorOperators.EXP).intoArray(result, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = Math.exp(this.data[i]);
+		}
+
+		return new DoubleData(this.shape, result);
+	}
+
+	public double total() {
+
+		double total = 0;
+		for (int i = 0; i < this.data.length; i++) {
+			total += this.data[i];
+		}
+
+		return total;
+	}
+
+	public DoubleData diagFlat() {
+
+		int s = this.shape.total();
+
+		double[] d = new double[s * s];
+		for (int i = 0; i < s; i++) {
+			d[(i * s) + i] = this.data[i];
+		}
+
+		return new DoubleData(new Shape(s, s), d);
+	}
+
+	public DoubleData concatenate(DoubleData d, int axis) {
+
+		int[] dim = this.shape.dimensions();
+		int[] tdim = d.shape.dimensions();
+
+		for (int i = axis + 1; i < dim.length; i++) {
+			if (dim[i] != tdim[i]) {
+				throw new DataException("Shape doesn't match with the data : " + shape + " with length : " + d.shape
+						+ " on axis :" + axis);
+			}
+		}
+
+		dim[axis] += tdim[axis];
+		Shape s = new Shape(dim);
+		int[] srcDim = this.shape.dimensions();
+
+		double[] newData = new double[s.total()];
+		if (axis == 0) {
+			System.arraycopy(this.data, 0, newData, 0, this.data.length);
+			System.arraycopy(d.data, 0, newData, this.data.length, d.data.length);
+		} else if (axis == 1) {
+			for (int i = 0; i < newData.length; i++) {
+				boolean first = i % dim[1] < srcDim[1];
+				
+				newData[i] = (first ? this.data : d.data)[((i / dim[1]) * (first ? srcDim[1] : tdim[1])) + (i % dim[1])
+						- (first ? 0 : srcDim[1])];
+			}
+		}
+
+		return new DoubleData(s, newData);
 	}
 }

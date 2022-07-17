@@ -1,0 +1,12 @@
+﻿firstRow,,,
+secondRow,"""double""","only one """,
+thridRow,"middle ""asdf"" asdf","""first",
+fourthRow,,,
+,,,
+after,empty row,"""JKL""","""Two races"""
+,,,
+another,empty row,"""""""""","three,commas"
+"""Nineth,""","""",,
+",",,,
+special csv,,,
+"twelfth""",,,

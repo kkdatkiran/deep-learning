@@ -1,6 +1,7 @@
 package in.dljava.operations;
 
 import in.dljava.data.DoubleData;
+import in.dljava.data.Shape;
 import jdk.incubator.vector.DoubleVector;
 import jdk.incubator.vector.VectorSpecies;
 
@@ -24,15 +25,10 @@ public class Softmax extends Operation {
 
 	@Override
 	public DoubleData inputGradient(DoubleData outGradient) {
-		int i = 0;
-		var data = this.out.getData();
-		var outdata = new double[data.length];
 
-		for (; i < data.length; i++) {
-			outdata[i] = (data[i] <= 0d ? 0d : 1d) * outGradient.getData()[i];
-		}
-
-		return new DoubleData(this.out.getShape(), outdata);
+		var s = this.out.deepCopy().reShape(new Shape(this.out.getShape().total(), 1));
+		var jac = s.diagFlat().subtract(s.matrixMultiply(s.transpose()));
+		return outGradient.matrixMultiply(jac);
 	}
 
 	@Override

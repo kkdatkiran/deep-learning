@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import in.dljava.DLException;
 import jdk.incubator.vector.DoubleVector;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
@@ -384,5 +385,49 @@ public class DoubleData implements Data, Cloneable {
 		}
 
 		return total;
+	}
+
+	public DoubleData diagFlat() {
+
+		int s = this.shape.total();
+
+		double[] d = new double[s * s];
+		for (int i = 0; i < s; i++) {
+			d[(i * s) + i] = this.data[i];
+		}
+
+		return new DoubleData(new Shape(s, s), d);
+	}
+
+	public DoubleData concatenate(DoubleData d, int axis) {
+
+		int[] dim = this.shape.dimensions();
+		int[] tdim = d.shape.dimensions();
+
+		for (int i = axis + 1; i < dim.length; i++) {
+			if (dim[i] != tdim[i]) {
+				throw new DataException("Shape doesn't match with the data : " + shape + " with length : " + d.shape
+						+ " on axis :" + axis);
+			}
+		}
+
+		dim[axis] += tdim[axis];
+		Shape s = new Shape(dim);
+		int[] srcDim = this.shape.dimensions();
+
+		double[] newData = new double[s.total()];
+		if (axis == 0) {
+			System.arraycopy(this.data, 0, newData, 0, this.data.length);
+			System.arraycopy(d.data, 0, newData, this.data.length, d.data.length);
+		} else if (axis == 1) {
+			for (int i = 0; i < newData.length; i++) {
+				boolean first = i % dim[1] < srcDim[1];
+				
+				newData[i] = (first ? this.data : d.data)[((i / dim[1]) * (first ? srcDim[1] : tdim[1])) + (i % dim[1])
+						- (first ? 0 : srcDim[1])];
+			}
+		}
+
+		return new DoubleData(s, newData);
 	}
 }

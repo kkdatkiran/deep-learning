@@ -75,7 +75,7 @@ public class Dense implements Layer {
 	@Override
 	public DoubleData feedForward(DoubleData prevLayerData) {
 		this.z = prevLayerData.matrixMultiply(w).add(b);
-		this.o = this.z.clone();
+		this.o = this.z.deepCopy();
 		this.activation.apply(this.o.getData());		
 		return this.o;
 	}
