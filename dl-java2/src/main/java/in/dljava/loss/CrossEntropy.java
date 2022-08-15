@@ -2,12 +2,14 @@ package in.dljava.loss;
 
 import in.dljava.data.DoubleData;
 
-public class CrossEntropy extends Loss{
-	
+public class CrossEntropy extends Loss {
+
 	private static final double EPSILON = 1e-9;
-	
+
 	private boolean singleClass;
-	
+
+	private DoubleData softmaxPreds;
+
 	public CrossEntropy() {
 		this.singleClass = false;
 	}
@@ -17,25 +19,45 @@ public class CrossEntropy extends Loss{
 		if (this.target.getShape().dimensions()[1] == 1)
 			this.singleClass = true;
 		
+		var localPred = this.prediction;
+
 		if (singleClass) {
-			this.prediction = this.prediction.concatenate(this.prediction.onesLike().subtract(this.prediction), 1);
-			this.target = this.prediction.concatenate(this.target.onesLike().subtract(this.target), 1);
+			localPred = localPred.concatenate(localPred.onesLike().subtract(localPred), 1);
+			this.target = this.target.concatenate(this.target.onesLike().subtract(this.target), 1);
 		}
-		
-//		var 
-		return 1d;
+
+		var softmaxPredsLocal = localPred.softmax(1);
+
+		this.softmaxPreds = softmaxPredsLocal.clip(EPSILON, 1 - EPSILON);
+
+		var softmaxCrossEntropyLoss = this.target.multiply(this.softmaxPreds.log()).neg()
+				.subtract(this.target.onesLike().subtract(this.target)
+						.multiply(this.softmaxPreds.onesLike().subtract(this.softmaxPreds).log()));
+		return softmaxCrossEntropyLoss.sum(null, false).getData()[0] / localPred.getShape().dimensions()[0];
+
 	}
 
 	@Override
 	protected DoubleData inputGradient() {
-		// TODO Auto-generated method stub
-		return null;
+
+		if (this.singleClass)
+			return this.softmaxPreds.subtract(this.target).unnormalize();
+		
+		return this.softmaxPreds.subtract(this.target).divide(this.prediction.getShape().dimensions()[0]);
 	}
 
 	@Override
-	public Loss deepCopy() {
-		// TODO Auto-generated method stub
-		return null;
+	public CrossEntropy deepCopy() {
+
+		CrossEntropy ce = new CrossEntropy();
+
+		ce.prediction = this.prediction.deepCopy();
+		ce.target = this.target.deepCopy();
+		ce.inpGradient = this.inpGradient.deepCopy();
+		ce.singleClass = this.singleClass;
+		ce.softmaxPreds = this.softmaxPreds.deepCopy();
+
+		return ce;
 	}
 
 }

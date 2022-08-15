@@ -108,4 +108,9 @@ public class Shape {
 
 		return new Shape(dims);
 	}
+
+	public Shape deepCopy() {
+
+		return new Shape(Arrays.copyOf(this.dimensions, this.dimensions.length));
+	}
 }

@@ -16,7 +16,7 @@ class XORTest {
 	@Test
 	void test() {
 		
-		var optim = new SGDOptimizer(0.0001);
+		var optim = new SGDOptimizer(0.01);
 
 		Sequential model = new Sequential(List.of(
 				new DenseLayer(6, new in.dljava.operations.Relu()),
@@ -30,7 +30,7 @@ class XORTest {
 		Trainer trainer = new Trainer(model, optim);
 		DoubleData xData = new DoubleData(new Shape(4, 2), x);
 		DoubleData yData = new DoubleData(new Shape(4, 1), y);
-		trainer.fit(xData, yData, xData, yData, 1000, 100, 1, true);
+		trainer.fit(xData, yData, xData, yData, 1000, 50, 1, true);
 
 		System.out.println("\n\n");
 		

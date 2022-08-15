@@ -2,21 +2,21 @@ package in.dljava.data;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import in.dljava.DLException;
+import in.dljava.util.ArraysUtil;
 import jdk.incubator.vector.DoubleVector;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
+import lombok.NonNull;
 
-public class DoubleData implements Data, Cloneable {
+public class DoubleData implements Data {
 
 	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
 
 	private double[] data;
 	private Shape shape;
 
-	public DoubleData(Shape shape, double[] data) {
+	public DoubleData(@NonNull Shape shape, double[] data) {
 
 		if (shape.total() != data.length)
 			throw new DataException("Shape doesn't match with the data : " + shape + " with length : " + data.length);
@@ -107,7 +107,7 @@ public class DoubleData implements Data, Cloneable {
 	public DoubleData add(DoubleData d) {
 
 		if (!this.shape.equals(d.getShape()))
-			throw new DataException("Cannot add data of shape " + this.shape + " to " + d.shape);
+			throw new DataException("Cannot add data of shape " + d.shape + " to " + this.shape);
 
 		int upperBound = SPECIES.loopBound(this.data.length);
 
@@ -174,17 +174,19 @@ public class DoubleData implements Data, Cloneable {
 			System.out.println(sb);
 		} else {
 
-			int matrixSize = dimensions[0];
+			int matrixSize = 1;
 			int dim[] = new int[dimensions.length - 1];
 			dim[0] = dimensions[0];
 
-			for (int i = 1; i < dimensions.length - 1; i++) {
+			for (int i = 1; i < dimensions.length; i++) {
 				matrixSize *= dimensions[i];
-				dim[i] = dimensions[i];
+				dim[i - 1] = dimensions[i];
 			}
 
 			for (int i = 0; i < dimensions[0]; i++) {
-				System.out.println(0 + Stream.of(dim).map(Object::toString).collect(Collectors.joining("x", "x", "")));
+
+				System.out.println(
+						(i + 1) + Arrays.stream(dim).mapToObj(e -> "" + e).collect(Collectors.joining("x", "x", "")));
 				this.print(dim, from + (i * matrixSize), from + ((i + 1) * matrixSize));
 			}
 		}
@@ -200,7 +202,7 @@ public class DoubleData implements Data, Cloneable {
 		return new DoubleData(shape, cloned);
 	}
 
-	public DoubleData divide(double batchSize) {
+	public DoubleData divide(double num) {
 
 		int upperBound = SPECIES.loopBound(this.data.length);
 
@@ -208,11 +210,11 @@ public class DoubleData implements Data, Cloneable {
 		double[] result = new double[this.shape.total()];
 
 		for (; i < upperBound; i += SPECIES.length()) {
-			DoubleVector.fromArray(SPECIES, this.data, i).div(batchSize).intoArray(result, i);
+			DoubleVector.fromArray(SPECIES, this.data, i).div(num).intoArray(result, i);
 		}
 
 		for (; i < this.data.length; i++) {
-			result[i] = this.data[i] / batchSize;
+			result[i] = this.data[i] / num;
 		}
 
 		return new DoubleData(this.shape, result);
@@ -221,7 +223,7 @@ public class DoubleData implements Data, Cloneable {
 	public DoubleData subtract(DoubleData d) {
 
 		if (!this.shape.equals(d.getShape()))
-			throw new DataException("Cannot subtract data of shape " + this.shape + " to " + d.shape);
+			throw new DataException("Cannot subtract data of shape " + d.shape + " from " + this.shape);
 
 		int upperBound = SPECIES.loopBound(this.data.length);
 
@@ -340,24 +342,175 @@ public class DoubleData implements Data, Cloneable {
 
 	public DoubleData multiply(DoubleData d) {
 
-		if (!this.shape.equals(d.getShape()))
-			throw new DataException("Cannot add data of shape " + this.shape + " to " + d.shape);
+		if (this.data.length == 1) {
 
-		int upperBound = SPECIES.loopBound(this.data.length);
+			return d.multiply(this.data[0]);
+		} else if (d.data.length == 1) {
+
+			return this.multiply(d.data[0]);
+		}
+
+		var x = stretchToSameSize(this, d);
+		var a = x[0];
+		var b = x[1];
+
+		int upperBound = SPECIES.loopBound(a.data.length);
 
 		int i = 0;
-		double[] result = new double[this.shape.total()];
+		double[] result = new double[a.shape.total()];
 
 		for (; i < upperBound; i += SPECIES.length()) {
-			DoubleVector.fromArray(SPECIES, this.data, i).mul(DoubleVector.fromArray(SPECIES, d.data, i))
-					.intoArray(result, i);
+			DoubleVector.fromArray(SPECIES, a.data, i).mul(DoubleVector.fromArray(SPECIES, b.data, i)).intoArray(result,
+					i);
 		}
 
 		for (; i < this.data.length; i++) {
-			result[i] = this.data[i] * d.data[i];
+			result[i] = a.data[i] * b.data[i];
 		}
 
-		return new DoubleData(this.shape, result);
+		return new DoubleData(a.shape, result);
+
+	}
+
+	public DoubleData divide(DoubleData d) {
+
+		if (d.data.length == 1) {
+
+			return this.divide(d.data[0]);
+		}
+
+		var x = stretchToSameSize(this, d);
+		var a = x[0];
+		var b = x[1];
+
+		int upperBound = SPECIES.loopBound(a.data.length);
+
+		int i = 0;
+		double[] result = new double[a.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, a.data, i).div(DoubleVector.fromArray(SPECIES, b.data, i)).intoArray(result,
+					i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = a.data[i] / b.data[i];
+		}
+
+		return new DoubleData(a.shape, result);
+
+	}
+
+	public static DoubleData[] stretchToSameSize(DoubleData a, DoubleData b) {
+
+		if (!a.shape.equals(b.shape)) {
+
+			var ashape = a.shape.dimensions();
+			var bshape = b.shape.dimensions();
+			a = a.deepCopy();
+			b = b.deepCopy();
+
+			if (ashape.length < bshape.length) {
+				var x = new int[bshape.length];
+				Arrays.fill(x, 1);
+				System.arraycopy(ashape, 0, x, bshape.length - ashape.length, ashape.length);
+				a.reShape(new Shape(x));
+			} else if (bshape.length < ashape.length) {
+				var x = new int[ashape.length];
+				Arrays.fill(x, 1);
+				System.arraycopy(bshape, 0, x, ashape.length - bshape.length, bshape.length);
+				b.reShape(new Shape(x));
+			}
+
+			ashape = a.shape.dimensions();
+			bshape = b.shape.dimensions();
+
+			for (int i = 0; i < ashape.length; i++) {
+				if (ashape[i] == bshape[i])
+					continue;
+
+				if (ashape[i] == 1) {
+					a = a.stretchDimension(bshape.length - i - 1, bshape[i]);
+				} else if (bshape[i] == 1) {
+					b = b.stretchDimension(ashape.length - i - 1, ashape[i]);
+				}
+
+				ashape = a.shape.dimensions();
+				bshape = b.shape.dimensions();
+			}
+		}
+
+		return new DoubleData[] { a, b };
+	}
+
+	public DoubleData stretchDimension(int axis, int times) {
+
+		int[] dims = this.shape.dimensions();
+		if (dims.length > 4)
+			throw new DataException("Data with more than 4 dimensions cannot be stretched.");
+
+		int[] newDims = this.shape.dimensions();
+		newDims[dims.length - axis - 1] = times;
+
+		for (int i = 0; i < dims.length / 2; i++) {
+			int t = dims[i];
+			dims[i] = dims[dims.length - i - 1];
+			dims[dims.length - i - 1] = t;
+		}
+
+		int fourthDim = 1;
+		if (dims.length == 4) {
+			fourthDim = (axis == 3 ? times : dims[3]);
+		}
+
+		int thirdDim = 1;
+		int eachFourthDimSize = 1;
+		if (dims.length >= 3) {
+			thirdDim = (axis == 2 ? times : dims[2]);
+			eachFourthDimSize = dims[2];
+		}
+
+		int secondDim = 1;
+		int eachThirdDimSize = 1;
+		if (dims.length >= 2) {
+			secondDim = (axis == 1 ? times : dims[1]);
+			eachThirdDimSize = dims[1];
+		}
+		eachFourthDimSize *= eachThirdDimSize;
+
+		int firstDim = 1;
+		int eachSecondDimSize = 1;
+		if (dims.length >= 1) {
+			firstDim = (axis == 0 ? times : dims[0]);
+			eachSecondDimSize = dims[0];
+		}
+		eachFourthDimSize *= eachSecondDimSize;
+		eachThirdDimSize *= eachSecondDimSize;
+
+		Shape newShape = new Shape(newDims);
+		double[] newData = new double[newShape.total()];
+		int ind = 0;
+
+		for (int i = 0; i < fourthDim; i++) {
+
+			int ii = (axis == 3 ? 0 : i);
+			for (int j = 0; j < thirdDim; j++) {
+
+				int jj = (axis == 2 ? 0 : j);
+				for (int k = 0; k < secondDim; k++) {
+
+					int kk = (axis == 1 ? 0 : k);
+					for (int l = 0; l < firstDim; l++) {
+
+						int ll = (axis == 0 ? 0 : l);
+						int dind = (ii * eachFourthDimSize) + (jj * eachThirdDimSize) + (kk * eachSecondDimSize) + ll;
+						newData[ind++] = this.data[dind];
+					}
+				}
+			}
+		}
+
+		return new DoubleData(newShape, newData);
 	}
 
 	public DoubleData exp() {
@@ -399,7 +552,15 @@ public class DoubleData implements Data, Cloneable {
 		return new DoubleData(new Shape(s, s), d);
 	}
 
-	public DoubleData concatenate(DoubleData d, int axis) {
+	public DoubleData concatenate(DoubleData d, Integer axis) {
+
+		if (axis == null) {
+			int total = this.shape.total() + d.shape.total();
+			double[] darray = new double[total];
+			System.arraycopy(this.data, 0, darray, 0, this.data.length);
+			System.arraycopy(d.data, 0, darray, this.data.length, d.data.length);
+			return new DoubleData(new Shape(total), darray);
+		}
 
 		int[] dim = this.shape.dimensions();
 		int[] tdim = d.shape.dimensions();
@@ -422,12 +583,257 @@ public class DoubleData implements Data, Cloneable {
 		} else if (axis == 1) {
 			for (int i = 0; i < newData.length; i++) {
 				boolean first = i % dim[1] < srcDim[1];
-				
+
 				newData[i] = (first ? this.data : d.data)[((i / dim[1]) * (first ? srcDim[1] : tdim[1])) + (i % dim[1])
 						- (first ? 0 : srcDim[1])];
 			}
 		}
 
 		return new DoubleData(s, newData);
+	}
+
+	public DoubleData sum(Integer axis, boolean keepDimensions) {
+
+		var dims = this.shape.dimensions();
+
+		if (axis != null && axis >= dims.length) {
+			throw new DataException("Cannot perform sum on the axis : " + axis);
+		}
+
+		double[] result;
+
+		Shape resultShape = null;
+
+		if (axis == null) {
+			result = new double[1];
+			for (int i = 0; i < this.data.length; i++) {
+				result[0] += this.data[i];
+			}
+			if (!keepDimensions) {
+				resultShape = new Shape(1);
+			} else {
+				for (int i = 0; i < dims.length; i++)
+					dims[i] = 1;
+				resultShape = new Shape(dims);
+			}
+		} else {
+			if (!keepDimensions) {
+
+				int j = 0;
+				int[] newDims = new int[dims.length - 1];
+				for (int i = 0; i < dims.length; i++) {
+					if (i == axis)
+						continue;
+					newDims[j++] = dims[i];
+				}
+				resultShape = new Shape(newDims);
+			} else {
+				int[] newDims = this.shape.dimensions();
+				newDims[axis] = 1;
+				resultShape = new Shape(newDims);
+			}
+
+			int outerLoopBound = 1;
+			int extremeLoopBound = 1;
+			for (int i = 0; i < dims.length; i++)
+				if (i < axis)
+					extremeLoopBound *= dims[i];
+				else if (i > axis)
+					outerLoopBound *= dims[i];
+
+			int extremeSkipper = outerLoopBound * dims[axis];
+			result = new double[resultShape.total()];
+			int l = 0;
+			for (int k = 0; k < extremeLoopBound; k++) {
+				for (int i = 0; i < outerLoopBound; i++) {
+					for (int j = 0; j < dims[axis]; j++) {
+						result[l] += this.data[k * extremeSkipper + j * outerLoopBound + i];
+					}
+					l++;
+				}
+			}
+		}
+
+		return new DoubleData(resultShape, result);
+	}
+
+	public boolean equals(Object obj) {
+
+		if (!(obj instanceof DoubleData))
+			return false;
+
+		DoubleData that = (DoubleData) obj;
+
+		if (!this.shape.equals(that.shape))
+			return false;
+
+		return Arrays.equals(this.data, that.data);
+	}
+
+	@Override
+	public int hashCode() {
+
+		return Arrays.hashCode(new int[] { this.shape.hashCode(), Arrays.hashCode(this.data) });
+	}
+
+	public DoubleData softmax(int axis) {
+
+		return this.subtract(this.logsumexp(axis, true)).exp();
+	}
+
+	public DoubleData logsumexp(int axis, boolean keepDimension) {
+
+		DoubleData aMax = this.amax(axis, keepDimension);
+		DoubleData[] x = stretchToSameSize(this, aMax);
+		aMax = x[1];
+		DoubleData tmp = this.subtract(aMax).exp().sum(axis, keepDimension).log();
+		x = stretchToSameSize(tmp, aMax);
+		tmp = x[0];
+		return tmp.add(aMax);
+	}
+
+	public DoubleData log() {
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+		double[] result = new double[this.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).lanewise(VectorOperators.LOG).intoArray(result, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = Math.log(this.data[i]);
+		}
+
+		return new DoubleData(this.shape, result);
+	}
+
+	public DoubleData amax(Integer axis, boolean keepDimensions) {
+
+		var dims = this.shape.dimensions();
+
+		if (axis != null && axis >= dims.length) {
+			throw new DataException("Cannot perform amax on the axis : " + axis);
+		}
+
+		double[] result;
+
+		Shape resultShape = null;
+
+		if (axis == null) {
+			result = new double[1];
+			result[0] = ArraysUtil.max(this.data);
+			if (!keepDimensions) {
+				resultShape = new Shape(1);
+			} else {
+				for (int i = 0; i < dims.length; i++)
+					dims[i] = 1;
+				resultShape = new Shape(dims);
+			}
+		} else {
+			if (!keepDimensions) {
+
+				int j = 0;
+				int[] newDims = new int[dims.length - 1];
+				for (int i = 0; i < dims.length; i++) {
+					if (i == axis)
+						continue;
+					newDims[j++] = dims[i];
+				}
+				resultShape = new Shape(newDims);
+			} else {
+				int[] newDims = this.shape.dimensions();
+				newDims[axis] = 1;
+				resultShape = new Shape(newDims);
+			}
+
+			int outerLoopBound = 1;
+			int extremeLoopBound = 1;
+			for (int i = 0; i < dims.length; i++)
+				if (i < axis)
+					extremeLoopBound *= dims[i];
+				else if (i > axis)
+					outerLoopBound *= dims[i];
+
+			int extremeSkipper = outerLoopBound * dims[axis];
+			result = new double[resultShape.total()];
+			int l = 0;
+			int curr;
+			for (int k = 0; k < extremeLoopBound; k++) {
+				for (int i = 0; i < outerLoopBound; i++) {
+					result[l] = this.data[k * extremeSkipper + i];
+					for (int j = 1; j < dims[axis]; j++) {
+						curr = k * extremeSkipper + j * outerLoopBound + i;
+						if (result[l] < this.data[curr])
+							result[l] = this.data[curr];
+					}
+					l++;
+				}
+			}
+		}
+
+		return new DoubleData(resultShape, result);
+	}
+
+	public DoubleData clip(double low, double high) {
+
+		double[] d = new double[this.data.length];
+
+		for (int i = 0; i < d.length; i++)
+			if (this.data[i] < low)
+				d[i] = low;
+			else if (this.data[i] > high)
+				d[i] = high;
+			else
+				d[i] = this.data[i];
+
+		return new DoubleData(this.shape.deepCopy(), d);
+	}
+
+	public DoubleData neg() {
+
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+		double[] result = new double[this.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).lanewise(VectorOperators.NEG).intoArray(result, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = -this.data[i];
+		}
+
+		return new DoubleData(this.shape, result);
+	}
+
+	public DoubleData unnormalize() {
+
+		var newdims = this.shape.dimensions();
+
+		if (newdims.length == 1 || (newdims.length == 2 && newdims[0] == 1))
+			return new DoubleData(new Shape(1, 1), new double[] { this.data[0] });
+
+		var x = this.subDataNth(0);
+		newdims[0] = 1;
+
+		return x.reShape(new Shape(newdims));
+	}
+
+	public int indexMax() {
+
+		double m = this.data[0];
+		int indm = 0;
+
+		for (int i = 0; i < this.data.length; i++) {
+			if (m >= this.data[i])
+				continue;
+			indm = i;
+			m = this.data[i];
+		}
+
+		return indm;
 	}
 }

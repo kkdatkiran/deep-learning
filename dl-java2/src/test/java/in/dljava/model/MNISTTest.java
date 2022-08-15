@@ -23,7 +23,7 @@ class MNISTTest {
 		DoubleData xTest = MNISTReader.readImages("mnist/t10k-images-idx3-ubyte");
 		DoubleData yTest = MNISTReader.readLabels("mnist/t10k-labels-idx1-ubyte");
 
-		var optim = new SGDOptimizer(0.0001);
+		var optim = new SGDOptimizer(0.1);
 
 		Sequential model = new Sequential(List.of(new DenseLayer(32, new in.dljava.operations.Sigmoid()),
 				new DenseLayer(64, new in.dljava.operations.Sigmoid()),
@@ -43,11 +43,14 @@ class MNISTTest {
 
 			int r = new Random().nextInt(0, 5000);
 
-			System.out.println("Number : ");
-			yTest.subDataNth(r).print();
-			System.out.println("Output : ");
-			model.forward(xTest.subDataNth(r)).print();
-			System.out.println("------");
+			var y = yTest.subDataNth(r);
+			y.print();
+			System.out.println("Number : " + (y.indexMax()));
+
+			var predy = model.forward(xTest.subDataNth(r));
+			predy.print();
+			System.out.println("Predicted Number : " + (predy.indexMax()));
+			System.out.println("------\n\n");
 
 		}
 	}
