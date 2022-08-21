@@ -10,7 +10,7 @@ public class Softmax extends Operation {
 	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
 
 	@Override
-	public DoubleData output() {
+	public DoubleData output(boolean inference) {
 
 		var data = this.input.getData();
 		var sum = this.input.exp().total();

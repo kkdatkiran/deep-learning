@@ -11,7 +11,7 @@ public class BiasAdd extends ParameterOperation {
 	}
 
 	@Override
-	public DoubleData output() {
+	public DoubleData output(boolean inference) {
 		return this.input.add(this.param);
 	}
 

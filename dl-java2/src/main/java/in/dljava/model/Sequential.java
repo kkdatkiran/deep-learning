@@ -30,7 +30,7 @@ public class Sequential {
 	public DoubleData forward(DoubleData batch) {
 		var out = batch;
 		for (Layer layer : this.layers) {
-			out = layer.forward(out);
+			out = layer.forward(out, false);
 		}
 
 		return out;

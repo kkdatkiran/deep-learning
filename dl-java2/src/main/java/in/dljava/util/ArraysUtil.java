@@ -26,6 +26,23 @@ public class ArraysUtil {
 		return max(d, 0, d.length, 1);
 	}
 
+	public static int[] inplaceReverse(final int[] src) {
+
+		int i = 0;
+		int j = src.length - 1;
+		int temp;
+
+		while (i < j) {
+			temp = src[i];
+			src[i] = src[j];
+			src[j] = temp;
+			i++;
+			j--;
+		}
+
+		return src;
+	}
+
 	private ArraysUtil() {
 
 	}

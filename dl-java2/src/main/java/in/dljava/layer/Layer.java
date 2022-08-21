@@ -19,7 +19,7 @@ public abstract class Layer {
 	protected DoubleData output;
 	protected int seed = 0;
 
-	public Layer(int neurons) {
+	protected Layer(int neurons) {
 
 		this.neurons = neurons;
 		this.first = true;
@@ -30,7 +30,7 @@ public abstract class Layer {
 
 	public abstract void setupLayer(DoubleData numIn);
 
-	public DoubleData forward(DoubleData input) {
+	public DoubleData forward(DoubleData input, boolean inference) {
 
 		if (this.first) {
 			this.setupLayer(input);
@@ -40,7 +40,7 @@ public abstract class Layer {
 		this.input = input;
 
 		for (Operation operation : this.operations) {
-			input = operation.forward(input);
+			input = operation.forward(input, inference);
 		}
 
 		this.output = input;

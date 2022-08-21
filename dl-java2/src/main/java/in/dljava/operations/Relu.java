@@ -9,7 +9,7 @@ public class Relu extends Operation {
 	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
 
 	@Override
-	public DoubleData output() {
+	public DoubleData output(boolean inference) {
 
 		var data = this.input.getData();
 		var outdata = new double[data.length];

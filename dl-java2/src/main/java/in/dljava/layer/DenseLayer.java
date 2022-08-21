@@ -13,11 +13,19 @@ import in.dljava.operations.WeightMultiply;
 public class DenseLayer extends Layer {
 
 	private Operation activation;
+	private boolean convInput = false;
+	private double dropout = 1.0;
 
 	public DenseLayer(int neurons, Operation activation) {
 
 		super(neurons);
 		this.activation = activation;
+	}
+
+	public DenseLayer(int neurons, Operation activation, boolean convInput, double dropout) {
+		this(neurons, activation);
+		this.convInput = convInput;
+		this.dropout = dropout;
 	}
 
 	@Override
@@ -29,8 +37,7 @@ public class DenseLayer extends Layer {
 
 		// Weights
 		this.params.add((DoubleData) initializer.initalize(new Shape(input.getShape().dimensions()[1], this.neurons)));
-
-		initializer = InitializerFunction.ZEROS.make(Double.class);
+		
 		// Bias
 		this.params.add((DoubleData) initializer.initalize(new Shape(1, this.neurons)));
 
@@ -50,7 +57,15 @@ public class DenseLayer extends Layer {
 
 		dl.input = this.input.deepCopy();
 		dl.output = this.output.deepCopy();
-		
+
 		return dl;
+	}
+
+	public boolean isConvInput() {
+		return convInput;
+	}
+
+	public double getDropout() {
+		return dropout;
 	}
 }

@@ -113,4 +113,22 @@ public class Shape {
 
 		return new Shape(Arrays.copyOf(this.dimensions, this.dimensions.length));
 	}
+
+	public int numberOfAxes() {
+
+		return this.dimensions.length;
+	}
+
+	public int[] totalsInAxes() {
+
+		int[] totals = new int[this.dimensions.length + 1];
+		totals[this.dimensions.length] = 1;
+
+		for (int i = this.dimensions.length - 1; i >= 0; i--) {
+
+			totals[i] = totals[i+1] * this.dimensions[i];
+		}
+
+		return totals;
+	}
 }

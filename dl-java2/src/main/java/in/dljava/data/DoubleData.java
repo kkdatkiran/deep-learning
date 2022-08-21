@@ -48,6 +48,10 @@ public class DoubleData implements Data {
 		return this;
 	}
 
+	public DoubleData reShape(int... dims) {
+		return this.reShape(new Shape(dims));
+	}
+
 	@Override
 	public Shape getShape() {
 		return this.shape;
@@ -267,6 +271,28 @@ public class DoubleData implements Data {
 		return new DoubleData(nShape, ndata);
 	}
 
+	public DoubleData transpose(int... axes) {
+
+		int[] toDims = new int[axes.length];
+		int[] fromDims = this.shape.dimensions();
+
+		for (int i = 0; i < axes.length; i++) {
+			toDims[i] = fromDims[axes[i]];
+		}
+
+		Shape toShape = new Shape(toDims);
+
+		ArraysUtil.inplaceReverse(fromDims);
+		NumberGenerator numgen = new NumberGenerator(fromDims, axes);
+
+		double[] reshaped = new double[this.shape.total()];
+
+		for (int i = 0; i < this.shape.total(); i++)
+			reshaped[i] = this.data[numgen.nextNumber()];
+
+		return new DoubleData(toShape, reshaped);
+	}
+
 	public DoubleData onesLike() {
 		var ndata = new double[this.data.length];
 
@@ -314,6 +340,23 @@ public class DoubleData implements Data {
 
 		for (; i < this.data.length; i++) {
 			result[i] = this.data[i] * d;
+		}
+
+		return new DoubleData(this.shape, result);
+	}
+
+	public DoubleData add(double d) {
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+		double[] result = new double[this.shape.total()];
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).add(d).intoArray(result, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			result[i] = this.data[i] + d;
 		}
 
 		return new DoubleData(this.shape, result);
@@ -835,5 +878,41 @@ public class DoubleData implements Data {
 		}
 
 		return indm;
+	}
+
+	public DoubleData newReShape(Shape newShape) {
+
+		double[] newData = new double[this.data.length];
+		System.arraycopy(this.data, 0, newData, 0, this.data.length);
+
+		return new DoubleData(newShape, newData);
+	}
+
+	public DoubleData newReShape(int... dims) {
+		return this.newReShape(new Shape(dims));
+	}
+
+	public static DoubleData binomial(int n, double p, Shape shape) {
+
+		int size = shape.total();
+
+		double[] newData = new double[size];
+
+		double logQ = Math.log(1.0 - p);
+
+		for (int i = 0; i < size; i++) {
+			int x = 0;
+			double sum = 0;
+			for (;;) {
+				sum += Math.log(Math.random()) / (n - x);
+				if (sum < logQ) {
+					newData[i] = x;
+					break;
+				}
+				x++;
+			}
+		}
+
+		return new DoubleData(shape, newData);
 	}
 }

@@ -4,31 +4,32 @@ import in.dljava.DLException;
 import in.dljava.data.DoubleData;
 
 public abstract class Operation {
-	
+
 	protected DoubleData input;
 	protected DoubleData out;
 	protected DoubleData inpGradient;
 
-	public DoubleData forward(DoubleData input) {
+	public DoubleData forward(DoubleData input, boolean inference) {
 		this.input = input;
-		this.out = this.output();
+		this.out = this.output(inference);
 		return this.out;
 	}
-	
-	public DoubleData backward(DoubleData outGradient)  {
+
+	public DoubleData backward(DoubleData outGradient) {
 		if (!this.out.getShape().equals(outGradient.getShape()))
-			throw new DLException("Mismatch sizes "+this.out.getShape()+" with "+outGradient.getShape());
-		
+			throw new DLException("Mismatch sizes " + this.out.getShape() + " with " + outGradient.getShape());
+
 		this.inpGradient = this.inputGradient(outGradient);
-		
+
 		if (!this.input.getShape().equals(inpGradient.getShape()))
-			throw new DLException("Mismatch sizes "+this.input.getShape()+" with "+inpGradient.getShape());
+			throw new DLException("Mismatch sizes " + this.input.getShape() + " with " + inpGradient.getShape());
 		return this.inpGradient;
 	}
-	
-	
-	public abstract DoubleData output();
+
+	public abstract DoubleData output(boolean inference);
+
 	public abstract DoubleData inputGradient(DoubleData outGradient);
+
 	public abstract Operation deepCopy();
 
 }
