@@ -46,4 +46,28 @@ public class ArraysUtil {
 	private ArraysUtil() {
 
 	}
+
+	public static int[] splice(int[] src, int start, int count, int... nums) {
+
+		int[] newArray = new int[src.length - count + (nums == null ? 0 : nums.length)];
+
+		int i = 0;
+		int j = 0;
+
+		while (i < newArray.length) {
+
+			if (j == start) {
+				j += count;
+				int k = 0;
+				while (nums != null && k < nums.length) {
+					newArray[i++] = nums[k++];
+				}
+			}
+
+			if (i < newArray.length && j < src.length)
+				newArray[i++] = src[j++];
+		}
+
+		return newArray;
+	}
 }

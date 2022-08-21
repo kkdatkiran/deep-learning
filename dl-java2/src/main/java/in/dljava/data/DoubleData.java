@@ -66,7 +66,7 @@ public class DoubleData implements Data {
 	public DoubleData matrixMultiply(DoubleData d) {
 
 		if (this.shape.dimensions().length != 2 || d.shape.dimensions().length != 2)
-			throw new DataException("Only 2 dimension data can be matrix multiplied");
+			return this.matrixMultiplyND(d);
 
 		if (this.shape.dimensions()[1] != d.shape.dimensions()[0])
 			throw new DataException(
@@ -106,6 +106,150 @@ public class DoubleData implements Data {
 		}
 
 		return new DoubleData(new Shape(this.shape.dimensions()[0], d.shape.dimensions()[1]), result);
+	}
+
+	public DoubleData matrixMultiplyND(DoubleData d) {
+
+		DoubleData a = this;
+		DoubleData b = d;
+
+		int supressDim = -1;
+
+		if (a.shape.numberOfAxes() == 1 || b.shape.numberOfAxes() == 1) {
+			DoubleData oned;
+			DoubleData multid;
+
+			if (a.shape.numberOfAxes() == 1) {
+				a = a.deepCopy();
+				oned = a;
+				multid = b;
+			} else {
+				b = b.deepCopy();
+				oned = b;
+				multid = a;
+			}
+
+			int[] mdims = multid.shape.dimensions();
+			int[] odims = oned.shape.dimensions();
+
+			int[] tdims = new int[2];
+
+			if (mdims[mdims.length - 1] == odims[0]) {
+				tdims[0] = odims[0];
+				tdims[1] = 1;
+				supressDim = 0;
+			} else if (mdims[mdims.length - 2] == odims[1]) {
+				tdims[0] = 1;
+				tdims[1] = odims[0];
+				supressDim = 1;
+			} else {
+				throw new DataException("Cannot multiply the data with shape " + this.shape + " and " + d.shape);
+			}
+
+			oned.reShape(tdims);
+		}
+
+		if (a.shape.numberOfAxes() != b.shape.numberOfAxes()) {
+			boolean asmall = a.shape.numberOfAxes() < b.shape.numberOfAxes();
+			DoubleData small;
+			DoubleData big;
+
+			if (asmall) {
+				a = (a == this) ? a.deepCopy() : a;
+				small = a;
+				big = b;
+			} else {
+				b = (b == d) ? b.deepCopy() : b;
+				small = b;
+				big = a;
+			}
+
+			int[] newDims = new int[big.shape.numberOfAxes()];
+			int[] smallDims = small.shape.dimensions();
+			Arrays.fill(newDims, 1);
+			System.arraycopy(smallDims, 0, newDims, newDims.length - smallDims.length, smallDims.length);
+
+			for (int i = newDims.length - 1, j = smallDims.length - 1; j >= 0; i--, j--) {
+				newDims[i] = smallDims[j];
+			}
+
+			small.reShape(newDims);
+		}
+
+		if (a.shape.numberOfAxes() == 2)
+			return a.matrixMultiply(b);
+
+		var x = stretchToSameSize(a, b, 2);
+		a = x[0];
+		b = x[1];
+
+		int[] finDims = a.shape.dimensions();
+		int[] bDims = b.shape.dimensions();
+		finDims[finDims.length - 1] = bDims[finDims.length - 1];
+
+		Shape finShape = new Shape(finDims);
+
+		double[] c = new double[finShape.total()];
+
+		int[] aDims = a.shape.dimensions();
+
+		int aRows = aDims[aDims.length - 2];
+		int aColumns = aDims[aDims.length - 1];
+		int aSkipper = aRows * aColumns;
+
+		int bRows = bDims[bDims.length - 2];
+		int bColumns = bDims[bDims.length - 1];
+		int bSkipper = bRows * bColumns;
+
+		if (aColumns != bRows) {
+			throw new DataException("Cannot multiply the data with shape " + this.shape + " and " + d.shape);
+		}
+
+		int cRows = finDims[finDims.length - 2];
+		int cColumns = finDims[finDims.length - 1];
+		int cSkipper = cRows * cColumns;
+
+		for (int aOffset = 0, bOffset = 0,
+				cOffset = 0; aOffset < a.shape.total(); aOffset += aSkipper, bOffset += bSkipper, cOffset += cSkipper) {
+			for (int i = 0; i < aRows; i++) {
+
+				int indexCbase = i * bColumns;
+
+				double valA = a.data[aOffset + i * aColumns];
+				int j;
+				for (j = 0; j < SPECIES.loopBound(bColumns); j += SPECIES.length()) {
+					var vb = DoubleVector.fromArray(SPECIES, b.data, bOffset + j);
+					vb.mul(valA).intoArray(c, cOffset + indexCbase + j);
+				}
+				for (; j < bColumns; j++) {
+					c[cOffset + indexCbase + j] = valA * b.data[j + bOffset];
+				}
+
+				for (int k = 1; k < bRows; k++) {
+					int indexB = k * bColumns;
+
+					valA = a.data[i * aColumns + k + aOffset];
+
+					for (j = 0; j < SPECIES.loopBound(bColumns); j += SPECIES.length()) {
+						var vb = DoubleVector.fromArray(SPECIES, b.data, bOffset + indexB + j);
+						var vc = DoubleVector.fromArray(SPECIES, c, cOffset + indexCbase + j);
+						vc.add(vb.mul(valA)).intoArray(c, cOffset + indexCbase + j);
+					}
+
+					for (; j < bColumns; j++) {
+						c[cOffset + indexCbase + j] += valA * b.data[bOffset + indexB + j];
+					}
+				}
+			}
+		}
+
+		DoubleData result = new DoubleData(finShape, c);
+
+		if (supressDim != -1)
+			result.reShape(
+					ArraysUtil.splice(result.shape.dimensions(), result.shape.numberOfAxes() - supressDim - 1, 1));
+
+		return result;
 	}
 
 	public DoubleData add(DoubleData d) {
@@ -445,6 +589,10 @@ public class DoubleData implements Data {
 	}
 
 	public static DoubleData[] stretchToSameSize(DoubleData a, DoubleData b) {
+		return stretchToSameSize(a, b, 0);
+	}
+
+	public static DoubleData[] stretchToSameSize(DoubleData a, DoubleData b, int ignoreLastNDims) {
 
 		if (!a.shape.equals(b.shape)) {
 
@@ -468,7 +616,7 @@ public class DoubleData implements Data {
 			ashape = a.shape.dimensions();
 			bshape = b.shape.dimensions();
 
-			for (int i = 0; i < ashape.length; i++) {
+			for (int i = 0; i < ashape.length - ignoreLastNDims; i++) {
 				if (ashape[i] == bshape[i])
 					continue;
 
@@ -484,6 +632,15 @@ public class DoubleData implements Data {
 		}
 
 		return new DoubleData[] { a, b };
+	}
+
+	public static DoubleData full(Shape shape, double num) {
+
+		double[] x = new double[shape.total()];
+
+		Arrays.fill(x, num);
+
+		return new DoubleData(shape, x);
 	}
 
 	public DoubleData stretchDimension(int axis, int times) {
