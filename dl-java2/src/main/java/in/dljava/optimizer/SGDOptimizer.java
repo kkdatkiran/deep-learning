@@ -1,5 +1,9 @@
 package in.dljava.optimizer;
 
+import java.util.Map;
+
+import in.dljava.data.DoubleData;
+
 public class SGDOptimizer extends Optimizer {
 
 	public SGDOptimizer(double learningRate) {
@@ -7,8 +11,11 @@ public class SGDOptimizer extends Optimizer {
 	}
 
 	@Override
-	public void step() {
-
-		this.model.zipParamsParamGrads().forEach(e -> e.getT1().inplaceSubtract(e.getT2().multiply(this.learningRate)));
+	public void updatRule(Map<String, DoubleData> arg) {
+	
+		DoubleData param = arg.get(PARAM);
+		DoubleData paramGrad = arg.get(PARAM_GRAD);
+		
+		param.inplaceSubtract(paramGrad.multiply(this.learningRate));
 	}
 }

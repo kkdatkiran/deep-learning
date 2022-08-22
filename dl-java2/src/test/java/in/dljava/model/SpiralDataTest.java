@@ -9,7 +9,7 @@ import in.dljava.data.DoubleData;
 import in.dljava.data.Shape;
 import in.dljava.file.CSVFileReader;
 import in.dljava.layer.DenseLayer;
-import in.dljava.loss.CrossEntropy;
+import in.dljava.loss.MeanSquaredError;
 import in.dljava.optimizer.SGDOptimizer;
 import in.dljava.optimizer.Tuple4;
 import in.dljava.trainer.Trainer;
@@ -26,10 +26,13 @@ class SpiralDataTest {
 		double y[] = new double[lines.size()];
 
 		int i = 0;
+		double xc,yc;
 		for (List<String> line : lines) {
 
-			x[(i * 2)] = Double.valueOf(line.get(0));
-			x[(i * 2) + 1] = Double.valueOf(line.get(1));
+			xc = Double.valueOf(line.get(0));
+			yc = Double.valueOf(line.get(1));
+			x[(i * 2)] = Math.sqrt(xc*xc + yc*yc);
+			x[(i * 2) + 1] = Math.atan2(yc, xc);
 			y[i++] = Double.valueOf(line.get(2));
 		}
 
@@ -38,17 +41,17 @@ class SpiralDataTest {
 
 		Tuple4<DoubleData, DoubleData, DoubleData, DoubleData> data = DataSplit.trainTestSplit(xData, yData, 0.3);
 
-		var optim = new SGDOptimizer(0.1);
+		var optim = new SGDOptimizer(0.01);
 
 		Sequential model = new Sequential(List.of(
-				new DenseLayer(16, new in.dljava.operations.Relu()),
-				new DenseLayer(16, new in.dljava.operations.Relu()),
-				new DenseLayer(1, new in.dljava.operations.Sigmoid())), new CrossEntropy(), 0);
+				new DenseLayer(8, new in.dljava.operations.Tanh()),
+				new DenseLayer(4, new in.dljava.operations.Tanh()),
+				new DenseLayer(1, new in.dljava.operations.Sigmoid())), new MeanSquaredError(), 0);
 
 		optim.setModel(model);
 
 		Trainer trainer = new Trainer(model, optim);
-		trainer.fit(data.getT1(), data.getT2(), data.getT3(), data.getT4(), 20000, 2000, 1, true);
+		trainer.fit(data.getT1(), data.getT2(), data.getT3(), data.getT4(), 1000, 100, 1, true);
 		
 		int testSize = data.getT3().getShape().dimensions()[0];
 

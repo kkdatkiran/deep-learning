@@ -442,7 +442,15 @@ public class DoubleData implements Data {
 
 		Arrays.fill(ndata, 1d);
 
-		return new DoubleData(this.shape, ndata);
+		return new DoubleData(this.shape.deepCopy(), ndata);
+	}
+	
+	public DoubleData zerosLike() {
+		var ndata = new double[this.data.length];
+
+		Arrays.fill(ndata, 0d);
+
+		return new DoubleData(this.shape.deepCopy(), ndata);
 	}
 
 	public DoubleData power(int num) {
@@ -1071,5 +1079,43 @@ public class DoubleData implements Data {
 		}
 
 		return new DoubleData(shape, newData);
+	}
+
+	public DoubleData inplaceAdd(DoubleData d) {
+
+		if (!this.shape.equals(d.getShape()))
+			throw new DataException("Cannot add data of shape " + this.shape + " to " + d.shape);
+
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).add(DoubleVector.fromArray(SPECIES, d.data, i))
+					.intoArray(this.data, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			this.data[i] += d.data[i];
+		}
+
+		return this;
+	}
+
+	public DoubleData inplaceMultiply(double d) {
+		
+		int upperBound = SPECIES.loopBound(this.data.length);
+
+		int i = 0;
+
+		for (; i < upperBound; i += SPECIES.length()) {
+			DoubleVector.fromArray(SPECIES, this.data, i).mul(d).intoArray(this.data, i);
+		}
+
+		for (; i < this.data.length; i++) {
+			this.data[i] = this.data[i] * d;
+		}
+
+		return this;
 	}
 }

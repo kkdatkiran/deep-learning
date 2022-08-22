@@ -43,6 +43,8 @@ public class Trainer {
 
 	public void fit(DoubleData xtrain, DoubleData ytrain, DoubleData xtest, DoubleData ytest, int epochs, int evalEvery,
 			int batchSize, boolean restart) {
+		
+		this.optim.setupDecay();
 
 		if (restart) {
 			for (Layer layer : this.net.getLayers()) {
@@ -64,7 +66,7 @@ public class Trainer {
 
 				var batch = batches.get(ii);
 				this.net.trainBatch(batch.getT1(), batch.getT2());
-				this.optim.step();
+				this.optim.step(e);
 			}
 
 			if ((e + 1) % evalEvery == 0) {
@@ -81,6 +83,10 @@ public class Trainer {
 				if (loss < this.bestLoss) {
 					this.bestLoss = loss;
 				}
+			}
+			
+			if (this.optim.getFinalLearningRate() != 0d) {
+				this.optim.decayLearningRate();
 			}
 		}
 	}
