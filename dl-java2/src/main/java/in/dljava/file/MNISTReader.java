@@ -52,7 +52,7 @@ public class MNISTReader {
 			for (int c = 0; i < fileSize; i++, c++)
 				data[c] = buffer.get() == 0 ? 0d : 1d;
 
-			return new DoubleData(new Shape(numberOfImages, rows * cols), data);
+			return new DoubleData(new Shape(numberOfImages, rows, cols), data);
 
 		} catch (IOException ex) {
 			throw new DLException("Unable to read file.");

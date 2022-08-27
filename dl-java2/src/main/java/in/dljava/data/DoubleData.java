@@ -254,24 +254,33 @@ public class DoubleData implements Data {
 
 	public DoubleData add(DoubleData d) {
 
-		if (!this.shape.equals(d.getShape()))
-			throw new DataException("Cannot add data of shape " + d.shape + " to " + this.shape);
+		if (this.data.length == 1) {
 
-		int upperBound = SPECIES.loopBound(this.data.length);
+			return d.add(this.data[0]);
+		} else if (d.data.length == 1) {
+
+			return this.add(d.data[0]);
+		}
+
+		var x = stretchToSameSize(this, d);
+		var a = x[0];
+		var b = x[1];
+
+		int upperBound = SPECIES.loopBound(a.data.length);
 
 		int i = 0;
-		double[] result = new double[this.shape.total()];
+		double[] result = new double[a.shape.total()];
 
 		for (; i < upperBound; i += SPECIES.length()) {
-			DoubleVector.fromArray(SPECIES, this.data, i).add(DoubleVector.fromArray(SPECIES, d.data, i))
-					.intoArray(result, i);
+			DoubleVector.fromArray(SPECIES, a.data, i).add(DoubleVector.fromArray(SPECIES, b.data, i)).intoArray(result,
+					i);
 		}
 
 		for (; i < this.data.length; i++) {
-			result[i] = this.data[i] + d.data[i];
+			result[i] = a.data[i] + b.data[i];
 		}
 
-		return new DoubleData(this.shape, result);
+		return new DoubleData(a.shape, result);
 	}
 
 	@Override
@@ -285,6 +294,16 @@ public class DoubleData implements Data {
 	public DoubleData subDataNth(int n) {
 
 		Shape newShape = this.shape.oneOf();
+		int size = newShape.total();
+
+		double[] sub = new double[size];
+		System.arraycopy(this.data, n * size, sub, 0, size);
+		return new DoubleData(newShape, sub);
+	}
+
+	public DoubleData subDataNthLooseFirstDim(int n) {
+
+		Shape newShape = this.shape.oneOfLooseFirstDim();
 		int size = newShape.total();
 
 		double[] sub = new double[size];
@@ -444,7 +463,7 @@ public class DoubleData implements Data {
 
 		return new DoubleData(this.shape.deepCopy(), ndata);
 	}
-	
+
 	public DoubleData zerosLike() {
 		var ndata = new double[this.data.length];
 
@@ -1103,7 +1122,7 @@ public class DoubleData implements Data {
 	}
 
 	public DoubleData inplaceMultiply(double d) {
-		
+
 		int upperBound = SPECIES.loopBound(this.data.length);
 
 		int i = 0;
@@ -1117,5 +1136,104 @@ public class DoubleData implements Data {
 		}
 
 		return this;
+	}
+
+	public DoubleData pad(int padding) {
+
+		int[] dims = this.getShape().dimensions();
+		int rows = dims[dims.length - 2];
+		int columns = dims[dims.length - 1];
+		int newRows = rows + padding * 2;
+		int newColumns = columns + padding * 2;
+		dims[dims.length - 2] = newRows;
+		dims[dims.length - 1] = newColumns;
+
+		Shape paddedShape = new Shape(dims);
+		double[] d = new double[paddedShape.total()];
+
+		int inputSkipper = rows * columns;
+		int padSkipper = newRows * newColumns;
+
+		for (int c = 0; c < this.getShape().total() / inputSkipper; c++) {
+
+			for (int i = 0; i < rows; i++) {
+				for (int j = 0; j < columns; j++) {
+					d[c * padSkipper + ((i + padding) * newColumns) + j + padding] = this.data[c * inputSkipper
+							+ (i * columns) + j];
+				}
+			}
+		}
+
+		return new DoubleData(paddedShape, d);
+	}
+
+	public DoubleData indices(Range... ranges) {
+
+		int[] dims = this.getShape().dimensions();
+		int[] sevenDims = new int[7];
+		Arrays.fill(sevenDims, 1);
+
+		for (int i = 0; i < dims.length; i++) {
+			sevenDims[sevenDims.length - dims.length + i] = dims[i];
+		}
+
+		int[] skipper = new int[7];
+		int total = 1;
+		for (int i = sevenDims.length - 1; i >= 0; i--) {
+			skipper[i] = total;
+			total *= sevenDims[i];
+		}
+
+		Range[] sevenRanges = new Range[7];
+		int newTotal = 1;
+		for (int i = 0; i < sevenRanges.length; i++) {
+
+			int rNum = (i - (sevenRanges.length - ranges.length));
+			if (rNum >= 0 && rNum < ranges.length)
+				sevenRanges[i] = ranges[rNum].setMax(sevenDims[i]);
+			else
+				sevenRanges[i] = new Range(0, sevenDims[i]);
+
+			newTotal *= sevenRanges[i].total();
+		}
+
+		double[] newData = new double[newTotal];
+		int cnt = 0;
+
+		for (int i = sevenRanges[0].getFrom(); i < sevenRanges[0].getTo(); i++) {
+			for (int j = sevenRanges[1].getFrom(); j < sevenRanges[1].getTo(); j++) {
+				for (int k = sevenRanges[2].getFrom(); k < sevenRanges[2].getTo(); k++) {
+					for (int l = sevenRanges[3].getFrom(); l < sevenRanges[3].getTo(); l++) {
+						for (int m = sevenRanges[4].getFrom(); m < sevenRanges[4].getTo(); m++) {
+							for (int n = sevenRanges[5].getFrom(); n < sevenRanges[5].getTo(); n++) {
+								for (int o = sevenRanges[6].getFrom(); o < sevenRanges[6].getTo(); o++) {
+
+									newData[cnt++] = this.data[i * skipper[0] + j * skipper[1] + k * skipper[2]
+											+ l * skipper[3] + m * skipper[4] + n * skipper[5] + o];
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		int[] newDims = new int[dims.length];
+		for (int i = sevenRanges.length - ranges.length; i < sevenRanges.length; i++) {
+			newDims[i - (sevenRanges.length - ranges.length)] = sevenRanges[i].total();
+		}
+
+		return new DoubleData(new Shape(newDims), newData);
+	}
+
+	public static DoubleData generate(Shape shape) {
+
+		double[] d = new double[shape.total()];
+
+		for (int i = 0; i < d.length; i++) {
+			d[i] = i;
+		}
+
+		return new DoubleData(shape, d);
 	}
 }

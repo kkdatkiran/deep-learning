@@ -27,10 +27,10 @@ public class Sequential {
 		}
 	}
 
-	public DoubleData forward(DoubleData batch) {
+	public DoubleData forward(DoubleData batch, boolean inference) {
 		var out = batch;
 		for (Layer layer : this.layers) {
-			out = layer.forward(out, false);
+			out = layer.forward(out, inference);
 		}
 
 		return out;
@@ -44,9 +44,9 @@ public class Sequential {
 		}
 	}
 
-	public double trainBatch(DoubleData xBatch, DoubleData yBatch) {
+	public double trainBatch(DoubleData xBatch, DoubleData yBatch, boolean inference) {
 
-		var predictions = this.forward(xBatch);
+		var predictions = this.forward(xBatch, inference);
 		var lossValue = this.loss.forward(predictions, yBatch);
 		this.backward(this.loss.backward());
 		return lossValue;

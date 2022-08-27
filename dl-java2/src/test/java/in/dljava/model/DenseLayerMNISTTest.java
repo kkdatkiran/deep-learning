@@ -12,15 +12,15 @@ import in.dljava.loss.MeanSquaredError;
 import in.dljava.optimizer.SGDOptimizer;
 import in.dljava.trainer.Trainer;
 
-class MNISTTest {
+class DenseLayerMNISTTest {
 
 	@Test
 	void test() {
 
-		DoubleData xTrain = MNISTReader.readImages("mnist/train-images-idx3-ubyte");
+		DoubleData xTrain = MNISTReader.readImages("mnist/train-images-idx3-ubyte").reShape(60000, 28 * 28);
 		DoubleData yTrain = MNISTReader.readLabels("mnist/train-labels-idx1-ubyte");
 
-		DoubleData xTest = MNISTReader.readImages("mnist/t10k-images-idx3-ubyte");
+		DoubleData xTest = MNISTReader.readImages("mnist/t10k-images-idx3-ubyte").reShape(10000, 28 * 28);
 		DoubleData yTest = MNISTReader.readLabels("mnist/t10k-labels-idx1-ubyte");
 
 		var optim = new SGDOptimizer(0.1);
@@ -28,7 +28,7 @@ class MNISTTest {
 		Sequential model = new Sequential(List.of(new DenseLayer(32, new in.dljava.operations.Sigmoid()),
 				new DenseLayer(64, new in.dljava.operations.Sigmoid()),
 				new DenseLayer(32, new in.dljava.operations.Sigmoid()),
-				new DenseLayer(10, new in.dljava.operations.Softmax())), new MeanSquaredError(), 0);
+				new DenseLayer(10, new in.dljava.operations.Sigmoid())), new MeanSquaredError(), 0);
 
 		optim.setModel(model);
 
@@ -47,7 +47,7 @@ class MNISTTest {
 			y.print();
 			System.out.println("Number : " + (y.indexMax()));
 
-			var predy = model.forward(xTest.subDataNth(r));
+			var predy = model.forward(xTest.subDataNth(r), true);
 			predy.print();
 			System.out.println("Predicted Number : " + (predy.indexMax()));
 			System.out.println("------\n\n");

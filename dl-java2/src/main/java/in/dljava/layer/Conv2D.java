@@ -11,18 +11,17 @@ import in.dljava.operations.Operation;
 public class Conv2D extends Layer {
 
 	private int paramSize;
-	private int outChannels;
 	private double dropout = 1;
 	private boolean flatten = false;
 	private Operation activation;
 
-	public Conv2D(int outChannels, int paramSize, double dropout, Operation activation, boolean flatten) {
+	public Conv2D(int neurons, int paramSize, double dropout, Operation activation, boolean flatten) {
 
-		super(outChannels);
+		super(neurons);
 		this.paramSize = paramSize;
 		this.activation = activation;
-		this.outChannels = outChannels;
 		this.flatten = flatten;
+		this.dropout = dropout;
 	}
 
 	@Override
@@ -30,7 +29,7 @@ public class Conv2D extends Layer {
 		
 		var initializer = InitializerFunction.GLOROT_UNIFORM.make(Double.class);
 		
-		var convParam = (DoubleData) initializer.initalize(new Shape(input.getShape().dimensions()[1], this.neurons));
+		var convParam = (DoubleData) initializer.initalize(new Shape(numIn.getShape().dimensions()[1], this.neurons, this.paramSize, this.paramSize));
 		
 		this.params.add(convParam);
 		this.operations.add(new Conv2DOperation(convParam));
@@ -46,7 +45,7 @@ public class Conv2D extends Layer {
 	@Override
 	public Conv2D deepCopy() {
 		
-		Conv2D conv = new Conv2D(outChannels, paramSize, dropout, activation, flatten);
+		Conv2D conv = new Conv2D(this.neurons, paramSize, dropout, activation, flatten);
 		
 		conv.first = this.first;
 		conv.params = this.params == null ? null : this.params.stream().map(DoubleData::deepCopy).toList();
@@ -58,7 +57,6 @@ public class Conv2D extends Layer {
 		conv.output = this.output.deepCopy();
 		
 		conv.paramSize = this.paramSize;
-		conv.outChannels = this.outChannels;
 		conv.dropout = this.dropout;
 		conv.flatten = this.flatten;
 		conv.activation = this.activation;
@@ -68,10 +66,6 @@ public class Conv2D extends Layer {
 
 	public int getParamSize() {
 		return paramSize;
-	}
-
-	public int getOutChannels() {
-		return outChannels;
 	}
 
 	public double getDropout() {

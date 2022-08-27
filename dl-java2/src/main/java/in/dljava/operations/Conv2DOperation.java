@@ -1,10 +1,8 @@
 package in.dljava.operations;
 
-import java.util.ArrayList;
-
 import in.dljava.data.DoubleData;
+import in.dljava.data.Range;
 import in.dljava.data.Shape;
-import in.dljava.functions.initializers.InitializerFunction;
 
 public class Conv2DOperation extends ParameterOperation {
 
@@ -17,64 +15,44 @@ public class Conv2DOperation extends ParameterOperation {
 		this.paramPad = this.paramSize / 2;
 	}
 
-	private DoubleData pad1D(DoubleData input) {
-
-		var z = (DoubleData) InitializerFunction.ZEROS.make(Double.class).initalize(new Shape(1, this.paramPad));
-		return z.concatenate(this.input, null).concatenate(z, null);
-	}
-
-	private DoubleData pad1DBatch(DoubleData input) {
-
-		var dims = input.getShape().dimensions();
-		var out = this.pad1D(input.subDataNth(0));
-		for (int i = 1; i < dims[0]; i++) {
-			out = out.concatenate(input.subDataNth(i), 0);
-		}
-
-		return out;
-	}
-
-	private DoubleData pad2DOBS(DoubleData input) {
-
-		var inpPad = this.pad1DBatch(input);
-
-		var other = (DoubleData) InitializerFunction.ZEROS.make(Double.class)
-				.initalize(new Shape(this.paramPad, input.getShape().dimensions()[0] + this.paramPad * 2));
-		return other.concatenate(inpPad, null).concatenate(other, null);
-	}
-
-	private DoubleData pad2DChannel(DoubleData input) {
-
-		var dims = input.getShape().dimensions();
-
-		var out = this.pad2DOBS(input.subDataNth(0));
-
-		for (int i = 1; i < dims[0]; i++) {
-			out = out.concatenate(input.subDataNth(i), 0);
-		}
-
-		return out;
-	}
-
 	private DoubleData getImagePatches(DoubleData input) {
 
 		var dims = input.getShape().dimensions();
 
-		var imgsBatchPad = this.pad2DChannel(input.subDataNth(0));
+		DoubleData eachData = input.subDataNth(0);
+		var imgsBatchPad = eachData.pad(this.paramPad);
 		for (int i = 1; i < dims[0]; i++) {
-			imgsBatchPad = imgsBatchPad.concatenate(input.subDataNth(i), 0);
+			imgsBatchPad = imgsBatchPad.concatenate(input.subDataNth(i).pad(this.paramPad), 0);
 		}
 
-		var patches = new ArrayList<DoubleData>();
+		dims = imgsBatchPad.getShape().dimensions();
+		var newDims = new int[dims.length + 1];
+		newDims[0] = dims[dims.length - 1] - this.paramSize + 1;
+		newDims[0] *= newDims[0];
+		for (int i = 1; i < newDims.length; i++) {
+			if (i < newDims.length - 2)
+				newDims[i] = dims[i - 1];
+			else
+				newDims[i] = this.paramSize;
+		}
 
-		var imgHeight = imgsBatchPad.getShape().dimensions()[2];
-		for (int h = 0; h < imgHeight - this.paramSize + 1; h++) {
-			for (int w = 0; w < imgHeight - this.paramSize + 1; w++) {
-//TODO: I need to work with dimensions here
+		DoubleData newD = null;
+
+		for (int h = 0; h < dims[2] - this.paramSize + 1; h++) {
+			for (int w = 0; w < dims[3] - this.paramSize + 1; w++) {
+
+				DoubleData x = imgsBatchPad.indices(new Range(-1), new Range(-1), new Range(h, h + this.paramSize),
+						new Range(w, w + this.paramSize));
+				x = x.reShape(x.getShape().increaseOneDimension());
+				if (newD == null) {
+					newD = x;
+				} else {
+					newD = newD.concatenate(x, 0);
+				}
 			}
 		}
 
-		return new DoubleData(new Shape(1), new double[] { 1 });
+		return newD;
 	}
 
 	@Override
@@ -117,7 +95,10 @@ public class Conv2DOperation extends ParameterOperation {
 		outputPatches = outputPatches
 				.reShape(new Shape(batchSize * imgSize, outputPatches.getShape().total() / (batchSize * imgSize)));
 
-		DoubleData paramReshaped = this.param.newReShape(new Shape());
+		Shape paramShape = this.param.getShape();
+
+		DoubleData paramReshaped = this.param
+				.newReShape(new Shape(paramShape.dimensions(0), paramShape.total() / paramShape.dimensions(0)));
 		paramReshaped = paramReshaped.transpose(1, 0);
 
 		return outputPatches.matrixMultiply(paramReshaped)
@@ -136,7 +117,8 @@ public class Conv2DOperation extends ParameterOperation {
 		int outChannels = paramShape[1];
 
 		DoubleData inPatchesReshape = this.getImagePatches(this.input);
-		inPatchesReshape.reShape(batchSize * imgSize, inPatchesReshape.getShape().total() / (batchSize * imgSize))
+		inPatchesReshape = inPatchesReshape
+				.reShape(batchSize * imgSize, inPatchesReshape.getShape().total() / (batchSize * imgSize))
 				.transpose(1, 0);
 
 		DoubleData outGradReshape = outGradient.transpose(0, 2, 3, 1);
@@ -157,7 +139,7 @@ public class Conv2DOperation extends ParameterOperation {
 
 	@Override
 	public Operation deepCopy() {
-		
+
 		Conv2DOperation conv = new Conv2DOperation(this.param.deepCopy());
 		conv.input = this.input.deepCopy();
 		conv.out = this.out.deepCopy();
@@ -165,7 +147,7 @@ public class Conv2DOperation extends ParameterOperation {
 		conv.paramGrad = this.paramGrad.deepCopy();
 		conv.paramPad = this.paramPad;
 		conv.paramSize = this.paramSize;
-		
+
 		return conv;
 	}
 

@@ -62,7 +62,7 @@ class SpiralDataTest {
 			System.out.println("Expected : ");
 			data.getT4().subDataNth(r).print();
 			System.out.println("Predicted : ");
-			model.forward(data.getT3().subDataNth(r)).print();
+			model.forward(data.getT3().subDataNth(r), true).print();
 			System.out.println("----");
 
 		}

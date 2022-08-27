@@ -35,11 +35,12 @@ public class DataSplit {
 		double[] xD = new double[trainSize * eachXSize];
 		double[] yD = new double[trainSize * eachYSize];
 
+		Random rnd = new Random();
 		for (int i = 0; i < trainSize; i++) {
 
 			int x;
 			do {
-				x = new Random().nextInt(size);
+				x = rnd.nextInt(size);
 			} while (finishedIndexes.contains(x));
 			finishedIndexes.add(x);
 

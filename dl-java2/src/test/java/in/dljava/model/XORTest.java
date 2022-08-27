@@ -38,7 +38,7 @@ class XORTest {
 		System.out.println("Input");
 		test.print();
 		System.out.println("Expected : 1\nPredicted : ");
-		model.forward(test).print();
+		model.forward(test, true).print();
 		
 		System.out.println("-----");
 		
@@ -46,7 +46,7 @@ class XORTest {
 		test = new DoubleData(new Shape(1, 2), new double[] { 1, 1 });
 		test.print();
 		System.out.println("Expected: 0\nPredicted : ");
-		model.forward(test).print();
+		model.forward(test, true).print();
 	}
 
 }

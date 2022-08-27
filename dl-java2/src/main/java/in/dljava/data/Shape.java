@@ -18,6 +18,15 @@ public class Shape {
 				throw new DataException("Negative dimensions are not allowed");
 	}
 
+	public Shape increaseOneDimension() {
+		int[] subDimension = new int[dimensions.length + 1];
+
+		System.arraycopy(dimensions, 0, subDimension, 1, dimensions.length);
+		subDimension[0] = 1;
+
+		return new Shape(subDimension);
+	}
+
 	public Shape oneOfHigherDimension() {
 
 		int[] subDimension = new int[dimensions.length];
@@ -26,6 +35,10 @@ public class Shape {
 		subDimension[0] = 1;
 
 		return new Shape(subDimension);
+	}
+
+	public int dimensions(int i) {
+		return this.dimensions[i];
 	}
 
 	public int[] dimensions() {
@@ -109,6 +122,15 @@ public class Shape {
 		return new Shape(dims);
 	}
 
+	public Shape oneOfLooseFirstDim() {
+
+		int[] dims = new int[this.dimensions.length - 1];
+
+		System.arraycopy(this.dimensions, 1, dims, 0, dims.length);
+
+		return new Shape(dims);
+	}
+
 	public Shape deepCopy() {
 
 		return new Shape(Arrays.copyOf(this.dimensions, this.dimensions.length));
@@ -126,7 +148,7 @@ public class Shape {
 
 		for (int i = this.dimensions.length - 1; i >= 0; i--) {
 
-			totals[i] = totals[i+1] * this.dimensions[i];
+			totals[i] = totals[i + 1] * this.dimensions[i];
 		}
 
 		return totals;

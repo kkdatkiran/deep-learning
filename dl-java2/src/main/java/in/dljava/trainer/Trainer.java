@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import in.dljava.data.DoubleData;
+import in.dljava.data.Range;
 import in.dljava.layer.Layer;
 import in.dljava.model.Sequential;
 import in.dljava.optimizer.Optimizer;
@@ -43,7 +44,12 @@ public class Trainer {
 
 	public void fit(DoubleData xtrain, DoubleData ytrain, DoubleData xtest, DoubleData ytest, int epochs, int evalEvery,
 			int batchSize, boolean restart) {
-		
+		this.fit(xtrain, ytrain, xtest, ytest, epochs, evalEvery, batchSize, restart, false);
+	}
+
+	public void fit(DoubleData xtrain, DoubleData ytrain, DoubleData xtest, DoubleData ytest, int epochs, int evalEvery,
+			int batchSize, boolean restart, boolean convTesting) {
+
 		this.optim.setupDecay();
 
 		if (restart) {
@@ -53,6 +59,9 @@ public class Trainer {
 			this.bestLoss = 1e9;
 		}
 
+		var testBatches = this.generateBatches(xtest, ytest, 1);
+		var batches = this.generateBatches(xtrain, ytrain, batchSize);
+
 //		Sequential lastModel = null;
 		for (int e = 0; e < epochs; e++) {
 
@@ -60,31 +69,35 @@ public class Trainer {
 //				lastModel = this.net.deepCopy();
 //			}
 
-			var batches = this.generateBatches(xtrain, ytrain, batchSize);
-
 			for (int ii = 0; ii < batches.size(); ii++) {
 
 				var batch = batches.get(ii);
-				this.net.trainBatch(batch.getT1(), batch.getT2());
+				this.net.trainBatch(batch.getT1(), batch.getT2(), false);
 				this.optim.step(e);
+
+				if (convTesting && (ii + 1) % 10 == 0) {
+					var testPreds = this.net.forward(batch.getT1(), true);
+					var batchLoss = this.net.getLoss().forward(testPreds, batch.getT2());
+					System.out.println("Batch Validation Loss after " + (ii + 1) + " batches : " + batchLoss);
+				}
 			}
 
 			if ((e + 1) % evalEvery == 0) {
-				
+
 				double loss = 0;
-				for (int i = 0;i<xtest.getShape().dimensions()[0];i++)  {
-					var testPreds = this.net.forward(xtest.subDataNth(i));
-					loss += this.net.getLoss().forward(testPreds, ytest.subDataNth(i));
+				for (int i = 0; i < testBatches.size(); i++) {
+					var testPreds = this.net.forward(testBatches.get(i).getT1(), true);
+					loss += this.net.getLoss().forward(testPreds, testBatches.get(i).getT2());
 				}
 				loss /= xtest.getShape().dimensions()[0];
 
-				System.out.println("Loss after " + (e + 1) + " epochs is " + loss);
+				System.out.println("Validation loss after " + (e + 1) + " epochs is " + loss);
 
 				if (loss < this.bestLoss) {
 					this.bestLoss = loss;
 				}
 			}
-			
+
 			if (this.optim.getFinalLearningRate() != 0d) {
 				this.optim.decayLearningRate();
 			}
