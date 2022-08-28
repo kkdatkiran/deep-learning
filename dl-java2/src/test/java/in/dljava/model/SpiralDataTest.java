@@ -51,7 +51,11 @@ class SpiralDataTest {
 		optim.setModel(model);
 
 		Trainer trainer = new Trainer(model, optim);
+		
+		long start = System.currentTimeMillis();
 		trainer.fit(data.getT1(), data.getT2(), data.getT3(), data.getT4(), 1000, 100, 1, true);
+		System.out.println("\n" + ((System.currentTimeMillis() - start) / (60d * 1000)) + " minutes");
+		System.out.println("");
 		
 		int testSize = data.getT3().getShape().dimensions()[0];
 

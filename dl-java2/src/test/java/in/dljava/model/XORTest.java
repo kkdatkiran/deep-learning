@@ -30,8 +30,10 @@ class XORTest {
 		Trainer trainer = new Trainer(model, optim);
 		DoubleData xData = new DoubleData(new Shape(4, 2), x);
 		DoubleData yData = new DoubleData(new Shape(4, 1), y);
+		long start = System.currentTimeMillis();
 		trainer.fit(xData, yData, xData, yData, 1000, 50, 1, true);
-
+		System.out.println("\n" + ((System.currentTimeMillis() - start) / (60d * 1000)) + " minutes");
+		System.out.println("");
 		System.out.println("\n\n");
 		
 		var test = new DoubleData(new Shape(1, 2), new double[] { 1, 0 });
